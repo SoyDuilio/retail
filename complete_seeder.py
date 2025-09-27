@@ -15,7 +15,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres:duilia@localhost:5432/pedidos_db"
+    raise Exception("DATABASE_URL requerida")
 
 engine = create_engine(DATABASE_URL)
 
