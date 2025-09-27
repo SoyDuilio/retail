@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Supervisor - Sistema Distribución</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/supervisor/supervisor.css') }}">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Audio para notificaciones -->
+    <audio id="newOrderSound" preload="auto">
+        <source src="{{ url_for('static', path='sounds/supervisor_notification.mp3') }}" type="audio/mpeg">
+    </audio>
+
+    <!-- Header -->
+    <header class="bg-gray-800 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold" id="supervisorNombre">Loading...</h1>
+                    <p class="text-gray-400 text-sm">Supervisor de Crédito</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-orange-400" id="escaladosHoy">0</p>
+                    <p class="text-xs text-gray-400">Escalados Hoy</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-400" id="aprobadosHoy">0</p>
+                    <p class="text-xs text-gray-400">Aprobados Hoy</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-red-400" id="rechazadosHoy">0</p>
+                    <p class="text-xs text-gray-400">Rechazados Hoy</p>
+                </div>
+                <button id="btnLogout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación de pestañas -->
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8">
+                <button class="tab-btn active" data-tab="pedidos">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Pedidos Escalados
+                </button>
+                <button class="tab-btn" data-tab="politicas">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                    Políticas de Crédito
+                </button>
+                <button class="tab-btn" data-tab="metricas">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                    </svg>
+                    Métricas y KPIs
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mx-auto p-4">
+        <!-- Tab: Pedidos Escalados -->
+        <div id="tab-pedidos" class="tab-content active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Pedidos Escalados</h2>
+                <div class="flex space-x-4">
+                    <button id="btnRefreshPedidos" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Actualizar
+                    </button>
+                    <select id="filtroPrioridad" class="bg-gray-700 px-3 py-2 rounded">
+                        <option value="todas">Todas las prioridades</option>
+                        <option value="alta">Prioridad Alta</option>
+                        <option value="media">Prioridad Media</option>
+                        <option value="baja">Prioridad Baja</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Cola de pedidos escalados -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="colaPedidosEscalados">
+                <!-- Tarjetas dinámicas -->
+            </div>
+        </div>
+
+        <!-- Tab: Políticas de Crédito -->
+        <div id="tab-politicas" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Configuración de Políticas de Crédito</h2>
+                <button id="btnGuardarPoliticas" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                    Guardar Cambios
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Límites por tipo de cliente -->
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">Límites de Crédito por Tipo de Cliente</h3>
+                    <div class="space-y-4" id="limitesCredito">
+                        <!-- Dinámico -->
+                    </div>
+                    <button id="btnAgregarTipoCliente" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
+                        + Agregar Tipo de Cliente
+                    </button>
+                </div>
+
+                <!-- Límites de aprobación por evaluador -->
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">Límites de Aprobación por Evaluador</h3>
+                    <div class="space-y-4" id="limitesEvaluadores">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración de plazos -->
+            <div class="mt-6 bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">Plazos de Pago Disponibles</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="plazosCredito">
+                    <!-- Dinámico -->
+                </div>
+                <button id="btnAgregarPlazo" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
+                    + Agregar Plazo
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab: Métricas y KPIs -->
+        <div id="tab-metricas" class="tab-content">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-4">Dashboard de Métricas</h2>
+                
+                <!-- Filtros de tiempo -->
+                <div class="flex space-x-4 mb-6">
+                    <select id="filtroTiempo" class="bg-gray-700 px-3 py-2 rounded">
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Esta Semana</option>
+                        <option value="mes" selected>Este Mes</option>
+                        <option value="trimestre">Trimestre</option>
+                    </select>
+                    <button id="btnExportarReporte" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                        Exportar Reporte
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs principales -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-blue-400" id="totalPedidos">0</div>
+                    <div class="text-sm text-gray-400">Total Pedidos</div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-green-400" id="tasaAprobacion">0%</div>
+                    <div class="text-sm text-gray-400">Tasa Aprobación</div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-yellow-400" id="tiempoPromedio">0m</div>
+                    <div class="text-sm text-gray-400">Tiempo Promedio</div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-purple-400" id="montoTotal">S/ 0</div>
+                    <div class="text-sm text-gray-400">Monto Total</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">Evaluaciones por Día</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEvaluaciones"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">Distribución por Evaluador</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEvaluadores"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ranking de vendedores -->
+            <div class="mt-6 bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">Ranking de Vendedores</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-gray-700">
+                                <th class="text-left p-2">Vendedor</th>
+                                <th class="text-right p-2">Pedidos</th>
+                                <th class="text-right p-2">Aprobados</th>
+                                <th class="text-right p-2">Tasa</th>
+                                <th class="text-right p-2">Monto Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingVendedores">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Evaluación Supervisor -->
+    <div id="modalEvaluacionSupervisor" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-5xl mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Evaluación de Supervisor</h2>
+                <button id="btnCerrarModalSupervisor" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Contenido del modal similar al evaluador pero con más detalles -->
+            <div id="contenidoEvaluacionSupervisor">
+                <!-- Cargado dinámicamente -->
+            </div>
+
+            <!-- Botones de acción de supervisor -->
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="btnRechazarSupervisor" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded">
+                    Rechazar
+                </button>
+                <button id="btnAprobarSupervisor" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded">
+                    Aprobar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='js/supervisor/supervisor.js') }}"></script>
+</body>
+</html>

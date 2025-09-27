@@ -1,0 +1,415 @@
+/* Estilos específicos para el Dashboard del Supervisor */
+
+/* Navegación de pestañas */
+.tab-btn {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    color: #9ca3af;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 0.875rem;
+}
+
+.tab-btn:hover {
+    color: #f3f4f6;
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+.tab-btn.active {
+    color: #fbbf24;
+    border-bottom-color: #fbbf24;
+    background-color: rgba(251, 191, 36, 0.1);
+}
+
+/* Contenido de pestañas */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tarjetas de pedidos escalados */
+.pedido-escalado-card {
+    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%);
+    border: 2px solid #ea580c;
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 200px;
+    overflow: hidden;
+}
+
+.pedido-escalado-card:hover {
+    border-color: #f97316;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(249, 115, 22, 0.3);
+}
+
+.pedido-escalado-card.urgente {
+    background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%);
+    border-color: #ef4444;
+    animation: pulseUrgent 2s infinite;
+}
+
+@keyframes pulseUrgent {
+    0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+}
+
+/* Indicadores de escalación */
+.escalacion-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #dc2626;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.escalacion-motivo {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fbbf24;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+/* Información del evaluador */
+.evaluador-info {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+.evaluador-nombre {
+    font-weight: bold;
+    color: #a78bfa;
+    font-size: 12px;
+}
+
+.evaluador-comentario {
+    color: #d1d5db;
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Configuración de políticas */
+.politica-card {
+    background: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+}
+
+.politica-card:hover {
+    border-color: #6b7280;
+    background: #404856;
+}
+
+.input-group {
+    margin-bottom: 12px;
+}
+
+.input-group label {
+    display: block;
+    color: #9ca3af;
+    font-size: 12px;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.input-group input,
+.input-group select {
+    width: 100%;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f3f4f6;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Límites de evaluadores */
+.evaluador-limite-card {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border: 1px solid #475569;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.evaluador-limite-card .evaluador-avatar {
+    width: 32px;
+    height: 32px;
+    background: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Configuración de plazos */
+.plazo-card {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.plazo-card:hover {
+    border-color: #63b3ed;
+    transform: translateY(-2px);
+}
+
+.plazo-card.activo {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+}
+
+.plazo-dias {
+    font-size: 18px;
+    font-weight: bold;
+    color: #3182ce;
+}
+
+.plazo-descripcion {
+    color: #a0aec0;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Métricas y KPIs */
+.kpi-card {
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    border: 1px solid #4b5563;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981, #f59e0b);
+}
+
+.kpi-valor {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.kpi-label {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Gráficos */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 16px 0;
+}
+
+.chart-container canvas {
+    max-height: 100%;
+}
+
+/* Tabla de ranking */
+.ranking-table {
+    background: #374151;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ranking-table th,
+.ranking-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #4b5563;
+}
+
+.ranking-table th {
+    background: #4b5563;
+    color: #d1d5db;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ranking-table tbody tr:hover {
+    background: #404856;
+}
+
+.ranking-position {
+    font-weight: bold;
+    color: #fbbf24;
+}
+
+.ranking-vendedor {
+    font-weight: 500;
+    color: #f3f4f6;
+}
+
+.ranking-stats {
+    font-size: 0.875rem;
+}
+
+.tasa-alta { color: #10b981; }
+.tasa-media { color: #f59e0b; }
+.tasa-baja { color: #ef4444; }
+
+/* Modal específico del supervisor */
+#modalEvaluacionSupervisor .modal-content {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border: 1px solid #374151;
+}
+
+.evaluacion-supervisor-header {
+    background: linear-gradient(90deg, #7c2d12, #9a3412);
+    padding: 16px;
+    border-radius: 8px 8px 0 0;
+    margin: -24px -24px 24px -24px;
+}
+
+.supervisor-decision-panel {
+    background: #374151;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+/* Animaciones específicas */
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.nueva-escalacion {
+    animation: slideInFromRight 0.5s ease-out, pulseUrgent 3s ease-in-out;
+}
+
+/* Estados de configuración */
+.config-guardado {
+    background: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+.config-error {
+    background: #ef4444;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tab-btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.75rem;
+    }
+    
+    .pedido-escalado-card {
+        min-height: 180px;
+        padding: 12px;
+    }
+    
+    .kpi-valor {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Loading states */
+.loading-politicas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #374151;
+    border-top: 4px solid #fbbf24;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

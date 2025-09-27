@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard CEO - Sistema Distribución</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/ceo/ceo.css') }}">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+        extend: {
+            spacing: {
+            '72': '18rem',
+            '84': '21rem',
+            '96': '24rem',
+            }
+        }
+        }
+    }
+    </script>
+
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 p-4 shadow-2xl">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-gold-400 to-yellow-600 rounded-full flex items-center justify-center">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-yellow-300">Executive Dashboard</h1>
+                    <p class="text-blue-200 text-sm">CEO - Chief Executive Officer</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-400" id="ventasHoy">S/ 0</p>
+                    <p class="text-xs text-gray-300">Ventas Hoy</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-400" id="pedidosActivos">0</p>
+                    <p class="text-xs text-gray-300">Pedidos Activos</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-purple-400" id="vendedoresOnline">0</p>
+                    <p class="text-xs text-gray-300">Vendedores Online</p>
+                </div>
+                <button id="btnNotificaciones" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM11 19H6a2 2 0 01-2-2V7a2 2 0 012-2h6m5 0v5"></path>
+                    </svg>
+                    Push
+                </button>
+                <button id="btnLogout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación -->
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8">
+                <button class="tab-btn active" data-tab="overview">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                    </svg>
+                    Resumen Ejecutivo
+                </button>
+                <button class="tab-btn" data-tab="ventas">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    Análisis de Ventas
+                </button>
+                <button class="tab-btn" data-tab="personal">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                    </svg>
+                    Gestión de Personal
+                </button>
+                <button class="tab-btn" data-tab="productos">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    Productos y Stock
+                </button>
+                <button class="tab-btn" data-tab="creditos">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Gestión de Créditos
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mx-auto p-6">
+        <!-- Tab: Resumen Ejecutivo -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+                <!-- KPIs principales -->
+                <div class="lg:col-span-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="kpi-card bg-gradient-to-br from-green-800 to-green-900">
+                            <div class="kpi-icon green">💰</div>
+                            <div class="kpi-value" id="ingresosMes">S/ 0</div>
+                            <div class="kpi-label">Ingresos del Mes</div>
+                            <div class="kpi-change positive" id="cambioIngresos">+0%</div>
+                        </div>
+                        <div class="kpi-card bg-gradient-to-br from-blue-800 to-blue-900">
+                            <div class="kpi-icon blue">📊</div>
+                            <div class="kpi-value" id="pedidosMes">0</div>
+                            <div class="kpi-label">Pedidos del Mes</div>
+                            <div class="kpi-change positive" id="cambioPedidos">+0%</div>
+                        </div>
+                        <div class="kpi-card bg-gradient-to-br from-purple-800 to-purple-900">
+                            <div class="kpi-icon purple">👥</div>
+                            <div class="kpi-value" id="clientesActivos">0</div>
+                            <div class="kpi-label">Clientes Activos</div>
+                            <div class="kpi-change positive" id="cambioClientes">+0%</div>
+                        </div>
+                        <div class="kpi-card bg-gradient-to-br from-yellow-800 to-orange-900">
+                            <div class="kpi-icon orange">⚡</div>
+                            <div class="kpi-value" id="conversion">0%</div>
+                            <div class="kpi-label">Tasa Conversión</div>
+                            <div class="kpi-change positive" id="cambioConversion">+0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos principales -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="chart-panel">
+                    <h3 class="chart-title">Ventas por Período</h3>
+                    <canvas id="chartVentasPeriodo"></canvas>
+                </div>
+                <div class="chart-panel">
+                    <h3 class="chart-title">Top 10 Productos</h3>
+                    <canvas id="chartTopProductos"></canvas>
+                </div>
+            </div>
+
+            <!-- Ranking de rendimiento -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="ranking-panel">
+                    <h3 class="panel-title">Top Vendedores</h3>
+                    <div class="ranking-list" id="rankingVendedores">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+                <div class="ranking-panel">
+                    <h3 class="panel-title">Alertas Ejecutivas</h3>
+                    <div class="alerts-list" id="alertasEjecutivas">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Análisis de Ventas -->
+        <div id="tab-ventas" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Análisis Detallado de Ventas</h2>
+                <div class="flex space-x-4">
+                    <select id="periodoVentas" class="bg-gray-700 px-3 py-2 rounded">
+                        <option value="7d">Últimos 7 días</option>
+                        <option value="30d">Últimos 30 días</option>
+                        <option value="90d">Últimos 90 días</option>
+                        <option value="1y">Último año</option>
+                    </select>
+                    <button id="btnExportarVentas" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                        Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="chart-panel mb-6">
+                        <h3 class="chart-title">Tendencia de Ventas</h3>
+                        <canvas id="chartTendenciaVentas"></canvas>
+                    </div>
+                    <div class="chart-panel">
+                        <h3 class="chart-title">Ventas por Categoría</h3>
+                        <canvas id="chartVentasCategoria"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <div class="stats-panel mb-6">
+                        <h3 class="panel-title">Estadísticas Clave</h3>
+                        <div class="stats-list">
+                            <div class="stat-item">
+                                <span class="stat-label">Ticket Promedio</span>
+                                <span class="stat-value" id="ticketPromedio">S/ 0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Frecuencia Compra</span>
+                                <span class="stat-value" id="frecuenciaCompra">0 días</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Cliente Promedio</span>
+                                <span class="stat-value" id="valorClientePromedio">S/ 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="geo-panel">
+                        <h3 class="panel-title">Ventas por Zona</h3>
+                        <div id="mapaVentas" class="mapa-container">
+                            <!-- Mapa de calor -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Gestión de Personal -->
+        <div id="tab-personal" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Gestión de Personal</h2>
+                <div class="flex space-x-4">
+                    <button id="btnAgregarVendedor" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                        + Vendedor
+                    </button>
+                    <button id="btnAgregarEvaluador" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                        + Evaluador
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Lista de vendedores -->
+                <div class="personal-panel">
+                    <h3 class="panel-title">Vendedores</h3>
+                    <div class="personal-list" id="listaVendedores">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+
+                <!-- Lista de evaluadores -->
+                <div class="personal-panel">
+                    <h3 class="panel-title">Evaluadores</h3>
+                    <div class="personal-list" id="listaEvaluadores">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+
+                <!-- Métricas de personal -->
+                <div class="personal-panel">
+                    <h3 class="panel-title">Métricas de Desempeño</h3>
+                    <canvas id="chartDesempenoPersonal"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Productos y Stock -->
+        <div id="tab-productos" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Gestión de Productos y Stock</h2>
+                <button id="btnAgregarProducto" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                    + Producto
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                <div class="stock-alert-card critical">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-count" id="stockCritico">0</div>
+                    <div class="alert-label">Stock Crítico</div>
+                </div>
+                <div class="stock-alert-card warning">
+                    <div class="alert-icon">📋</div>
+                    <div class="alert-count" id="stockBajo">0</div>
+                    <div class="alert-label">Stock Bajo</div>
+                </div>
+                <div class="stock-alert-card success">
+                    <div class="alert-icon">✅</div>
+                    <div class="alert-count" id="stockOptimo">0</div>
+                    <div class="alert-label">Stock Óptimo</div>
+                </div>
+                <div class="stock-alert-card info">
+                    <div class="alert-icon">📦</div>
+                    <div class="alert-count" id="totalProductos">0</div>
+                    <div class="alert-label">Total Productos</div>
+                </div>
+            </div>
+
+            <div class="productos-table-container">
+                <table class="productos-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock Actual</th>
+                            <th>Stock Mínimo</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaProductos">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Gestión de Créditos -->
+        <div id="tab-creditos" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Gestión de Créditos</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                <div class="credit-metric-card">
+                    <div class="metric-value" id="creditoTotal">S/ 0</div>
+                    <div class="metric-label">Crédito Total Otorgado</div>
+                </div>
+                <div class="credit-metric-card">
+                    <div class="metric-value" id="creditoUsado">S/ 0</div>
+                    <div class="metric-label">Crédito en Uso</div>
+                </div>
+                <div class="credit-metric-card">
+                    <div class="metric-value" id="creditoVencido">S/ 0</div>
+                    <div class="metric-label">Crédito Vencido</div>
+                </div>
+                <div class="credit-metric-card">
+                    <div class="metric-value" id="tasaMorosidad">0%</div>
+                    <div class="metric-label">Tasa de Morosidad</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-panel">
+                    <h3 class="chart-title">Distribución de Créditos</h3>
+                    <canvas id="chartDistribucionCreditos"></canvas>
+                </div>
+                <div class="chart-panel">
+                    <h3 class="chart-title">Evolución de Morosidad</h3>
+                    <canvas id="chartEvolucionMorosidad"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Push Notifications -->
+    <div id="modalPushNotifications" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Enviar Notificación Push</h2>
+                <button id="btnCerrarModalPush" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">Destinatarios</label>
+                    <select id="tipoDestinatario" class="w-full bg-gray-700 px-3 py-2 rounded">
+                        <option value="todos">Todos los usuarios</option>
+                        <option value="vendedores">Solo vendedores</option>
+                        <option value="evaluadores">Solo evaluadores</option>
+                        <option value="supervisores">Solo supervisores</option>
+                        <option value="clientes">Solo clientes</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">Título</label>
+                    <input type="text" id="tituloNotificacion" class="w-full bg-gray-700 px-3 py-2 rounded" 
+                           placeholder="Título de la notificación" maxlength="50">
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">Mensaje</label>
+                    <textarea id="mensajeNotificacion" class="w-full bg-gray-700 px-3 py-2 rounded h-20" 
+                              placeholder="Mensaje de la notificación" maxlength="200"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button id="btnCancelarPush" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+                        Cancelar
+                    </button>
+                    <button id="btnEnviarPush" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                        Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='js/ceo/ceo.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Distribución - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .login-container {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #581c87 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .input-focus:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .role-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .role-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .role-card.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="h-full">
+    <div class="login-container">
+        <div class="w-full max-w-md px-6">
+            <!-- Logo/Header -->
+            <div class="text-center mb-8 fade-in">
+                <div class="mx-auto h-20 w-20 rounded-full glass-effect flex items-center justify-center mb-4">
+                    <svg class="h-10 w-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Sistema de Distribución</h1>
+                <p class="text-blue-200 text-sm">Evaluación crediticia en tiempo real</p>
+            </div>
+
+            <!-- Formulario Login -->
+            <div class="glass-effect rounded-2xl p-8 fade-in" style="animation-delay: 0.2s">
+                <form id="loginForm" class="space-y-6">
+                    <!-- Selección de Rol -->
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-blue-100">Selecciona tu rol</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="role-card glass-effect rounded-lg p-3 border border-white/10" data-role="vendedor">
+                                <div class="flex flex-col items-center text-center">
+                                    <svg class="h-6 w-6 text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span class="text-xs text-white font-medium">Vendedor</span>
+                                </div>
+                            </div>
+                            <div class="role-card glass-effect rounded-lg p-3 border border-white/10" data-role="evaluador">
+                                <div class="flex flex-col items-center text-center">
+                                    <svg class="h-6 w-6 text-green-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                    <span class="text-xs text-white font-medium">Evaluador</span>
+                                </div>
+                            </div>
+                            <div class="role-card glass-effect rounded-lg p-3 border border-white/10" data-role="supervisor">
+                                <div class="flex flex-col items-center text-center">
+                                    <svg class="h-6 w-6 text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <span class="text-xs text-white font-medium">Supervisor</span>
+                                </div>
+                            </div>
+                            <div class="role-card glass-effect rounded-lg p-3 border border-white/10" data-role="cliente">
+                                <div class="flex flex-col items-center text-center">
+                                    <svg class="h-6 w-6 text-orange-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l7-3 7 3z"></path>
+                                    </svg>
+                                    <span class="text-xs text-white font-medium">Cliente</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campo Usuario -->
+                    <div>
+                        <label for="usuario" class="block text-sm font-medium text-blue-100 mb-2">
+                            <span id="userLabel">Usuario</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                id="usuario"
+                                name="usuario"
+                                class="input-focus w-full pl-10 pr-3 py-3 border border-white/20 rounded-lg bg-white/5 text-white placeholder-blue-300 focus:outline-none transition-all duration-200"
+                                placeholder="Ingresa tu DNI"
+                                required
+                                maxlength="11"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Campo Contraseña -->
+                    <div>
+                        <label for="clave" class="block text-sm font-medium text-blue-100 mb-2">Contraseña</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <input
+                                type="password"
+                                id="clave"
+                                name="clave"
+                                class="input-focus w-full pl-10 pr-3 py-3 border border-white/20 rounded-lg bg-white/5 text-white placeholder-blue-300 focus:outline-none transition-all duration-200"
+                                placeholder="Ingresa tu contraseña"
+                                required
+                                maxlength="11"
+                            >
+                        </div>
+                        <p class="mt-1 text-xs text-blue-300" id="claveHelp">
+                            Trabajadores: usa tu DNI como contraseña
+                        </p>
+                    </div>
+
+                    <!-- Ubicación (opcional) -->
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="ubicacion" class="h-4 w-4 text-blue-600 rounded border-white/20">
+                        <label for="ubicacion" class="text-sm text-blue-200">
+                            Compartir ubicación
+                            <span class="pulse-dot inline-block w-2 h-2 bg-green-400 rounded-full ml-1"></span>
+                        </label>
+                    </div>
+
+                    <!-- Botón Login -->
+                    <button
+                        type="submit"
+                        id="loginBtn"
+                        class="btn-primary w-full py-3 px-4 rounded-lg text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                    >
+                        <span id="loginBtnText">Iniciar Sesión</span>
+                        <svg id="loginSpinner" class="hidden animate-spin -mr-1 ml-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Mensajes -->
+                <div id="message" class="mt-4 hidden"></div>
+
+                <!-- Información del Sistema -->
+                <div class="mt-6 pt-4 border-t border-white/10">
+                    <div class="flex items-center justify-center space-x-4 text-xs text-blue-300">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                            <span>Sistema Activo</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <span>Conexión Segura</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LoginManager {
+            constructor() {
+                this.selectedRole = null;
+                this.currentLocation = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.requestLocation();
+            }
+
+            bindEvents() {
+                // Selección de roles
+                document.querySelectorAll('.role-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        this.selectRole(e.currentTarget.dataset.role);
+                    });
+                });
+
+                // Form submit
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+
+                // Checkbox ubicación
+                document.getElementById('ubicacion').addEventListener('change', (e) => {
+                    if (e.target.checked && !this.currentLocation) {
+                        this.requestLocation();
+                    }
+                });
+            }
+
+            selectRole(role) {
+                // Remover selección previa
+                document.querySelectorAll('.role-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+
+                // Seleccionar nuevo rol
+                document.querySelector(`[data-role="${role}"]`).classList.add('selected');
+                this.selectedRole = role;
+
+                // Actualizar labels
+                this.updateLabels(role);
+            }
+
+            updateLabels(role) {
+                const userLabel = document.getElementById('userLabel');
+                const usuarioInput = document.getElementById('usuario');
+                const claveHelp = document.getElementById('claveHelp');
+
+                if (role === 'cliente') {
+                    userLabel.textContent = 'RUC';
+                    usuarioInput.placeholder = 'Ingresa tu RUC';
+                    usuarioInput.maxLength = 11;
+                    claveHelp.textContent = 'Clientes: usa tu RUC como contraseña';
+                } else {
+                    userLabel.textContent = 'DNI';
+                    usuarioInput.placeholder = 'Ingresa tu DNI';
+                    usuarioInput.maxLength = 8;
+                    claveHelp.textContent = 'Trabajadores: usa tu DNI como contraseña';
+                }
+            }
+
+            async requestLocation() {
+                if (!navigator.geolocation) {
+                    console.log('Geolocalización no disponible');
+                    return;
+                }
+
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000
+                        });
+                    });
+
+                    this.currentLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    console.log('Ubicación obtenida:', this.currentLocation);
+                } catch (error) {
+                    console.log('Error obteniendo ubicación:', error);
+                }
+            }
+
+            async handleLogin() {
+                if (!this.selectedRole) {
+                    this.showMessage('Por favor selecciona tu rol', 'error');
+                    return;
+                }
+
+                const usuario = document.getElementById('usuario').value.trim();
+                const clave = document.getElementById('clave').value.trim();
+
+                if (!usuario || !clave) {
+                    this.showMessage('Por favor completa todos los campos', 'error');
+                    return;
+                }
+
+                // Validar formato según rol
+                if (this.selectedRole === 'cliente') {
+                    if (usuario.length !== 11 || !/^\d+$/.test(usuario)) {
+                        this.showMessage('RUC debe tener 11 dígitos numéricos', 'error');
+                        return;
+                    }
+                } else {
+                    if (usuario.length !== 8 || !/^\d+$/.test(usuario)) {
+                        this.showMessage('DNI debe tener 8 dígitos numéricos', 'error');
+                        return;
+                    }
+                }
+
+                this.setLoading(true);
+
+                try {
+                    const loginData = {
+                        usuario: usuario,
+                        clave: clave,
+                        tipo_usuario: this.selectedRole,
+                        ubicacion_lat: this.currentLocation?.lat,
+                        ubicacion_lng: this.currentLocation?.lng
+                    };
+
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(loginData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Guardar token
+                        if (result.token) {
+                            localStorage.setItem('auth_token', result.token);
+                            localStorage.setItem('user_data', JSON.stringify({
+                                id: result.usuario_id,
+                                tipo: result.usuario_tipo,
+                                nombre: result.nombre_completo
+                            }));
+                        }
+
+                        this.showMessage('Login exitoso, redirigiendo...', 'success');
+                        
+                        // Redireccionar después de 1 segundo
+                        setTimeout(() => {
+                            if (result.user_info && result.user_info.redirect_url) {
+                                window.location.href = result.user_info.redirect_url;
+                            } else {
+                                window.location.href = `/vendedor/dashboard/${result.usuario_id}`;
+                            }
+                        }, 1000);
+
+                    } else {
+                        this.showMessage(result.mensaje || 'Error en el login', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Error en login:', error);
+                    this.showMessage('Error de conexión. Inténtalo de nuevo.', 'error');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                const btn = document.getElementById('loginBtn');
+                const btnText = document.getElementById('loginBtnText');
+                const spinner = document.getElementById('loginSpinner');
+
+                if (loading) {
+                    btn.disabled = true;
+                    btnText.textContent = 'Iniciando sesión...';
+                    spinner.classList.remove('hidden');
+                } else {
+                    btn.disabled = false;
+                    btnText.textContent = 'Iniciar Sesión';
+                    spinner.classList.add('hidden');
+                }
+            }
+
+            showMessage(text, type = 'info') {
+                const messageDiv = document.getElementById('message');
+                
+                let bgColor, textColor, icon;
+                switch (type) {
+                    case 'success':
+                        bgColor = 'bg-green-500/20';
+                        textColor = 'text-green-300';
+                        icon = `<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>`;
+                        break;
+                    case 'error':
+                        bgColor = 'bg-red-500/20';
+                        textColor = 'text-red-300';
+                        icon = `<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>`;
+                        break;
+                    default:
+                        bgColor = 'bg-blue-500/20';
+                        textColor = 'text-blue-300';
+                        icon = `<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>`;
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="flex items-center p-3 rounded-lg ${bgColor} border border-white/10">
+                        <div class="${textColor} mr-3">${icon}</div>
+                        <span class="${textColor} text-sm">${text}</span>
+                    </div>
+                `;
+                
+                messageDiv.classList.remove('hidden');
+
+                // Auto-ocultar después de 5 segundos
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginManager();
+        });
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Detectar instalación de PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Mostrar botón de instalación (opcional)
+            console.log('PWA puede ser instalada');
+        });
+
+        // Mostrar usuarios de prueba en desarrollo
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setTimeout(() => {
+                const messageDiv = document.getElementById('message');
+                messageDiv.innerHTML = `
+                    <div class="p-3 rounded-lg bg-yellow-500/20 border border-yellow-400/30">
+                        <div class="text-yellow-300 text-xs">
+                            <strong>Usuarios de Prueba:</strong><br>
+                            Supervisor: DNI 99999999<br>
+                            Evaluador: DNI 88888888<br>
+                            Vendedor: DNI 12345678<br>
+                            <em>Contraseña = DNI</em>
+                        </div>
+                    </div>
+                `;
+                messageDiv.classList.remove('hidden');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Evaluador</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/evaluador/evaluador.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div class="user-info">
+            <div class="avatar">AM</div>
+            <div>
+                <h3>Ana Martínez Silva</h3>
+                <p>Analista de Crédito</p>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">12</div>
+                <div class="stat-label">Pendientes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Evaluados Hoy</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">95%</div>
+                <div class="stat-label">Aprobación</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="actualizarPedidos()">🔄 Actualizar</button>
+            <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="filters">
+            <input type="text" class="search-input" placeholder="🔍 Buscar pedido, cliente o RUC..." onkeyup="filtrarPedidos()">
+            
+            <select class="filter-select" onchange="filtrarPedidos()">
+                <option value="todos">Todos los pedidos</option>
+                <option value="pendiente">Solo pendientes</option>
+                <option value="urgente">Urgentes</option>
+                <option value="normal">Normales</option>
+            </select>
+            
+            <select class="filter-select" onchange="filtrarPedidos()">
+                <option value="todos">Todos los montos</option>
+                <option value="bajo">Menos de S/ 1,000</option>
+                <option value="medio">S/ 1,000 - S/ 5,000</option>
+                <option value="alto">Más de S/ 5,000</option>
+            </select>
+            
+            <select class="filter-select" onchange="filtrarPedidos()">
+                <option value="todos">Todos los vendedores</option>
+                <option value="juan">Juan Pérez</option>
+                <option value="maria">María García</option>
+                <option value="carlos">Carlos López</option>
+                <option value="ana">Ana Rodríguez</option>
+                <option value="roberto">Roberto Silva</option>
+                <option value="luis">Luis Mendoza</option>
+            </select>
+
+            <select class="filter-select" onchange="ordenarPedidos()">
+                <option value="tiempo">Ordenar por tiempo</option>
+                <option value="monto">Ordenar por monto</option>
+                <option value="prioridad">Ordenar por prioridad</option>
+                <option value="cliente">Ordenar por cliente</option>
+            </select>
+        </div>
+
+        <div class="pedidos-container" id="pedidos-container" ondrop="drop(event)" ondragover="allowDrop(event)">
+            <!-- Los pedidos se cargarán dinámicamente -->
+        </div>
+
+        <div class="pagination">
+            <button disabled>← Anterior</button>
+            <span>Página 1 de 3 (12 pedidos)</span>
+            <button>Siguiente →</button>
+        </div>
+    </div>
+
+    <!-- Modal de Evaluación -->
+    <div class="modal" id="modal-evaluacion">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Evaluar Pedido #<span id="modal-pedido-id"></span></h2>
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            
+            <div class="evaluation-form">
+                <div class="risk-indicators">
+                    <div class="risk-card low">
+                        <h4>Score Crediticio</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold;">85/100</div>
+                        <small>Riesgo Bajo</small>
+                    </div>
+                    <div class="risk-card medium">
+                        <h4>Utilización Crédito</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold;">30%</div>
+                        <small>Uso Moderado</small>
+                    </div>
+                    <div class="risk-card low">
+                        <h4>Historial Pagos</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold;">98%</div>
+                        <small>Excelente</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Límite de Crédito Recomendado</label>
+                    <input type="number" class="form-input" id="limite-credito" value="10000" step="100">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Días de Crédito</label>
+                    <select class="form-select" id="dias-credito">
+                        <option value="15">15 días</option>
+                        <option value="30" selected>30 días</option>
+                        <option value="45">45 días</option>
+                        <option value="60">60 días</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Decisión de Evaluación</label>
+                    <select class="form-select" id="decision-evaluacion">
+                        <option value="aprobado">✅ Aprobar</option>
+                        <option value="condicional">⚠️ Aprobar con condiciones</option>
+                        <option value="rechazado">❌ Rechazar</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Comentarios de Evaluación</label>
+                    <textarea class="form-textarea" id="comentarios" placeholder="Añade observaciones sobre esta evaluación..."></textarea>
+                </div>
+
+                <div class="actions-row">
+                    <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="guardarEvaluacion()">Guardar Evaluación</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div class="notification" id="notification"></div>
+
+    <script src="{{ url_for('static', path='js/evaluador/evaluador.js') }}"></script>
+</body>
+</html>
