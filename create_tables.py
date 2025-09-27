@@ -6,6 +6,9 @@ engine = create_engine(DATABASE_URL)
 
 # Todas las tablas necesarias
 sql_commands = [
+    # Al inicio de create_tables.py, antes de los CREATE TABLE
+    "ALTER TABLE categorias ADD COLUMN IF NOT EXISTS codigo_categoria VARCHAR(10);",
+    
     # Tipos de cliente
     "CREATE TABLE IF NOT EXISTS tipos_cliente (id SERIAL PRIMARY KEY, nombre VARCHAR(100) NOT NULL, descripcion TEXT, activo BOOLEAN DEFAULT true);",
     
@@ -49,3 +52,4 @@ with engine.begin() as conn:
             print(f"Error creando tabla: {e}")
         
 print("Todas las tablas procesadas")
+
