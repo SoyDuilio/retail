@@ -23,6 +23,33 @@ def hash_password(password):
     """Genera hash de contraseña"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+
+def verificar_y_crear_tipos_cliente():
+    """Verifica y crea tipos de cliente si no existen"""
+    tipos_base = [
+        ("bodega", "Precio minorista para bodegas"),
+        ("minimarket", "Precio para minimarkets y autoservicios"),
+        ("restaurante", "Precio para restaurantes y hoteles"),
+        ("mayorista", "Precio mayorista para distribuidores")
+    ]
+    
+    print("🏷️ Creando tipos de cliente...")
+    with engine.begin() as conn:
+        for nombre, descripcion in tipos_base:  # ← FALTABA ESTA LÍNEA
+            exists = conn.execute(text("""
+                SELECT EXISTS(SELECT 1 FROM tipos_cliente WHERE nombre = :nombre)
+            """), {"nombre": nombre}).scalar()
+            
+            if not exists:
+                conn.execute(text("""
+                    INSERT INTO tipos_cliente (nombre, descripcion)
+                    VALUES (:nombre, :descripcion)
+                """), {
+                    "nombre": nombre,
+                    "descripcion": descripcion
+                })
+                print(f"✅ Tipo cliente creado: {nombre}")
+
 def verificar_y_crear_categorias():
     """Verifica y crea categorías si no existen"""
     categorias_base = [
@@ -420,3 +447,4 @@ if __name__ == "__main__":
         
         if not IS_RAILWAY:
             print("\n🔧 Verificar conexión a base de datos local")
+
