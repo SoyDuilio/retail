@@ -186,6 +186,15 @@ def crear_usuarios_base():
 
 def crear_clientes_muestra():
     """Crea clientes de muestra"""
+    
+    def crear_clientes_muestra():
+        # Fix directo - crear tipos si no existen
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO tipos_cliente (nombre, descripcion) VALUES ('bodega', 'Bodegas') ON CONFLICT (nombre) DO NOTHING"))
+            conn.execute(text("INSERT INTO tipos_cliente (nombre, descripcion) VALUES ('minimarket', 'Minimarkets') ON CONFLICT (nombre) DO NOTHING"))
+            conn.execute(text("INSERT INTO tipos_cliente (nombre, descripcion) VALUES ('restaurante', 'Restaurantes') ON CONFLICT (nombre) DO NOTHING"))
+            conn.execute(text("INSERT INTO tipos_cliente (nombre, descripcion) VALUES ('mayorista', 'Mayoristas') ON CONFLICT (nombre) DO NOTHING"))
+    
     print("🏪 Creando clientes de muestra...")
     
     clientes = [
@@ -447,4 +456,5 @@ if __name__ == "__main__":
         
         if not IS_RAILWAY:
             print("\n🔧 Verificar conexión a base de datos local")
+
 
