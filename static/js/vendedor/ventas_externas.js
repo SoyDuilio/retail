@@ -1,352 +1,727 @@
-// -------------------------------------
-// 1. ESTADO DE LA APLICACIÓN
-// -------------------------------------
-// CAMBIO: Centralizamos todo en un único objeto de estado. Esta es nuestra "única fuente de verdad".
-let estadoPedido = { items: [], itemsNoEncontrados: [], cliente: null };
-let vendedorData = null;
-let token = localStorage.getItem('auth_token');
+// Estado global de la aplicación
+const estadoApp = {
+    token: localStorage.getItem('auth_token'),
+    vendedor: null,
+    ubicacion: null,
+    clienteSeleccionado: null,
+    pedido: [],
+    productosSeleccionados: new Set(), // Para checkboxes de productos
+    recognitionCliente: null,
+    recognitionProductos: null,
+    isRecordingCliente: false,
+    isRecordingProductos: false
+};
 
-// --- Variables para los dos tipos de reconocimiento de voz ---
-let isRecording = false;
-let browserRecognition; // Para el del navegador
-let mediaRecorder;      // Para el de Google
-let audioChunks = [];
-
-// -------------------------------------
-// 2. INICIALIZACIÓN
-// -------------------------------------
-
+// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
+    verificarAutenticacion();
     cargarDatosVendedor();
-    cargarEstadisticas();
-    cargarPedidosRecientes();
-    inicializarReconocimientoVozBrowser(); // Inicializamos el del navegador
+    inicializarReconocimientoVoz();
+    configurarEventListeners();
 });
 
-// -------------------------------------
-// 3. FUNCIONES DE CARGA Y DATOS INICIALES
-// -------------------------------------
-// Inicializar Web Speech API
-// =============================================
-// RECONOCIMIENTO DE VOZ - MOTOR DEL NAVEGADOR
-// =============================================
-function inicializarReconocimientoVozBrowser() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-        browserRecognition = new SpeechRecognition();
-        browserRecognition.lang = 'es-ES';
-        browserRecognition.continuous = false;
-        browserRecognition.interimResults = false;
-    }
-}
-
-function toggleRecordingBrowser() {
-    if (!browserRecognition) {
-        alert('Tu navegador no soporta reconocimiento de voz.');
+// Verificar autenticación
+function verificarAutenticacion() {
+    // TODO: Verificar correctamente la autenticación cuando sepamos cómo funciona
+    // Temporalmente deshabilitado para poder ver la página
+    
+    /* DESCOMENTAR CUANDO SE ARREGLE:
+    if (!estadoApp.token) {
+        window.location.href = '/';
         return;
     }
-
-    const micButton = document.getElementById('micBrowser');
-    const inputProductos = document.getElementById('inputProductos');
-    
-    if (isRecording) {
-        browserRecognition.stop();
-        // onend se encargará de remover la clase 'recording' y cambiar isRecording
-        return;
-    }
-    
-    browserRecognition.start();
-    isRecording = true;
-    micButton.classList.add('recording');
-
-    browserRecognition.onresult = function(event) {
-        const texto = event.results[0][0].transcript.trim();
-        inputProductos.value = texto;
-        if (texto) {
-            procesarPedidoTexto(texto);
-        }
-        inputProductos.value = '';
-    };
-
-    browserRecognition.onend = function() {
-        isRecording = false;
-        micButton.classList.remove('recording');
-    };
-
-    browserRecognition.onerror = function(event) {
-        console.error("Error en reconocimiento de voz del navegador:", event.error);
-        alert(`Error del micrófono: ${event.error}`);
-        isRecording = false;
-        micButton.classList.remove('recording');
-    };
-}
-
-
-// =============================================
-// RECONOCIMIENTO DE VOZ - MOTOR DE GOOGLE
-// =============================================
-function toggleRecordingGoogle() {
-    const micButton = document.getElementById('micGoogle');
-    
-    if (isRecording) {
-        // Detener manualmente
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-        }
-        clearTimeout(googleRecordingTimeout); // Limpiamos el temporizador
-        isRecording = false;
-        micButton.classList.remove('recording');
-    } else {
-        // Iniciar grabación
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    isRecording = true;
-                    micButton.classList.add('recording');
-                    audioChunks = [];
-                    
-                    const options = { mimeType: 'audio/webm;codecs=opus' };
-                    mediaRecorder = new MediaRecorder(stream, options);
-                    
-                    mediaRecorder.start();
-                    console.log("Iniciando grabación para Google...");
-
-                    // AÑADIDO: Temporizador de 5 segundos para detener automáticamente
-                    googleRecordingTimeout = setTimeout(() => {
-                        if (mediaRecorder.state === "recording") {
-                            console.log("Grabación detenida automáticamente por timeout.");
-                            mediaRecorder.stop();
-                        }
-                    }, 5000); // 5000 milisegundos = 5 segundos
-                    
-                    mediaRecorder.addEventListener("dataavailable", event => {
-                        audioChunks.push(event.data);
-                    });
-
-                    mediaRecorder.addEventListener("stop", () => {
-                        const audioBlob = new Blob(audioChunks, { type: options.mimeType });
-                        procesarAudioConGoogle(audioBlob);
-                        stream.getTracks().forEach(track => track.stop());
-                        isRecording = false;
-                        micButton.classList.remove('recording');
-                        clearTimeout(googleRecordingTimeout); // Limpiamos por si se detuvo manualmente
-                    });
-                })
-                .catch(error => {
-                    console.error("Error al acceder al micrófono:", error);
-                    alert("No se pudo acceder al micrófono.");
-                    isRecording = false;
-                    micButton.classList.remove('recording');
-                });
-        } else {
-            alert("Tu navegador no soporta la grabación de audio.");
-        }
+    */
+   
+    // Por ahora solo verificamos si existe, sin redirigir
+    if (!estadoApp.token) {
+        console.warn('No hay token de autenticación');
     }
 }
 
-async function procesarAudioConGoogle(audioBlob) {
-    document.getElementById('procesandoProductos').classList.remove('hidden');
-    const formData = new FormData();
-    formData.append('audio_file', audioBlob, 'grabacion.webm');
-
+// Cargar datos del vendedor
+async function cargarDatosVendedor() {
     try {
-        const response = await fetch('/api/pedidos/procesar-texto-google', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-        });
+        // Obtener datos del localStorage que guarda el login
+        const userDataStr = localStorage.getItem('user_data');
         
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            document.getElementById('inputProductos').value = `Google: "${data.message}"`;
-            actualizarItemsDelPedido(data.data);
+        if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            estadoApp.vendedor = {
+                id: userData.id,
+                nombre: userData.nombre,
+                tipo: userData.tipo,
+                codigo: userData.id
+            };
+            
+            document.getElementById('vendedorNombre').textContent = userData.nombre;
+            document.getElementById('vendedorCodigo').textContent = `ID: ${userData.id}`;
         } else {
-            console.error("Error de la API de Google:", data.detail || data.message);
-            alert(`Error (Google): ${data.detail || data.message}`);
+            // Si no hay datos, valores por defecto
+            document.getElementById('vendedorNombre').textContent = 'Vendedor';
+            document.getElementById('vendedorCodigo').textContent = 'Sistema';
         }
+        
+        cargarEstadisticas();
+        
     } catch (error) {
-        console.error('Error de red al enviar el audio:', error);
-        alert('Error de conexión al enviar el audio.');
-    } finally {
-        document.getElementById('procesandoProductos').classList.add('hidden');
+        console.error('Error cargando datos:', error);
+        document.getElementById('vendedorNombre').textContent = 'Vendedor';
+        document.getElementById('vendedorCodigo').textContent = 'Sistema';
     }
 }
 
-
-
-function cargarDatosVendedor() {
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-    document.getElementById('vendedorNombre').textContent = userData.nombre || 'Vendedor';
-    document.getElementById('vendedorCodigo').textContent = `Código: ${userData.id || 'N/A'}`;
-    vendedorData = userData;
-}
-
+// Cargar estadísticas
 async function cargarEstadisticas() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
     try {
-        const response = await fetch('/api/vendedor/estadisticas', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+        // TODO: Crear endpoint /api/vendedor/estadisticas/hoy en el backend
+        // Temporalmente usar valores por defecto
+        document.getElementById('pedidosHoy').textContent = '0';
+        document.getElementById('ventasHoy').textContent = 'S/0';
         
-        if (data.success) {
-            document.getElementById('pedidosHoy').textContent = data.data.pedidos_hoy || 0;
-            document.getElementById('ventasHoy').textContent = `S/${data.data.ventas_hoy || 0}`;
+        /* ENDPOINT QUE FALTA - Descomentar cuando esté creado:
+        const response = await fetch('/api/vendedor/estadisticas/hoy', {
+            headers: { 'Authorization': `Bearer ${estadoApp.token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('pedidosHoy').textContent = data.pedidos || 0;
+            document.getElementById('ventasHoy').textContent = `S/${(data.ventas || 0).toFixed(0)}`;
         }
+        */
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
     }
 }
 
-async function cargarPedidosRecientes() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-    try {
-        const response = await fetch('/api/vendedor/pedidos-recientes', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+// Configurar event listeners
+function configurarEventListeners() {
+    const inputCliente = document.getElementById('inputBusquedaCliente');
+    const inputProductos = document.getElementById('inputProductos');
+    
+    // Búsqueda de cliente en tiempo real
+    let timeoutCliente;
+    inputCliente.addEventListener('input', function() {
+        clearTimeout(timeoutCliente);
+        const query = this.value.trim();
         
-        if (data.success && data.data.length > 0) {
-            mostrarPedidosRecientes(data.data);
+        if (query.length >= 3) {
+            timeoutCliente = setTimeout(() => buscarCliente(query), 300);
+        } else {
+            ocultarDropdownClientes();
         }
-    } catch (error) {
-        console.error('Error cargando pedidos:', error);
+    });
+    
+    // Búsqueda de productos en tiempo real
+    let timeoutProductos;
+    inputProductos.addEventListener('input', function() {
+        clearTimeout(timeoutProductos);
+        const query = this.value.trim();
+        
+        if (query.length >= 3) {
+            timeoutProductos = setTimeout(() => buscarProductos(query), 300);
+        } else {
+            ocultarDropdownProductos();
+        }
+    });
+    
+    // Validación RUC en tiempo real
+    const inputRuc = document.getElementById('nuevoRuc');
+    if (inputRuc) {
+        let timeoutRuc;
+        inputRuc.addEventListener('input', function() {
+            clearTimeout(timeoutRuc);
+            const ruc = this.value.trim();
+            
+            if (ruc.length === 11 && /^\d+$/.test(ruc)) {
+                timeoutRuc = setTimeout(() => validarRuc(ruc), 500);
+            }
+        });
     }
 }
 
-function mostrarPedidosRecientes(pedidos) {
-    const container = document.getElementById('pedidosRecientes');
-    container.innerHTML = pedidos.map(pedido => `
-        <div class="bg-white/5 p-2 rounded-lg border border-white/10">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h4 class="text-white text-sm font-medium">${pedido.cliente_nombre}</h4>
-                    <p class="text-blue-200 text-xs">#${pedido.numero_pedido}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-green-400 font-semibold text-sm">S/ ${pedido.total}</p>
-                    <span class="inline-block px-2 py-1 text-xs rounded-full ${getEstadoColor(pedido.estado)}">
-                        ${pedido.estado}
-                    </span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-/*
-function getEstadoColor(estado) {
-    const colores = {
-        'pendiente': 'bg-yellow-500/20 text-yellow-300',
-        'confirmado': 'bg-green-500/20 text-green-300',
-        'rechazado': 'bg-red-500/20 text-red-300'
-    };
-    return colores[estado] || 'bg-gray-500/20 text-gray-300';
-}
-*/
-
-function getEstadoColor(estado) {
-        switch(estado.toLowerCase()) {
-            case 'confirmado':
-                return 'bg-green-100 text-green-800';
-            case 'pendiente':
-                return 'bg-yellow-100 text-yellow-800';
-            case 'entregado':
-                return 'bg-blue-100 text-blue-800';
-            case 'cancelado':
-                return 'bg-red-100 text-red-800';
-            case 'rechazado':
-                return 'bg-red-100 text-red-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-}
-
-
-// -------------------------------------
-// 4. LÓGICA DE PROCESAMIENTO DE PEDIDOS (EL CORAZÓN)
-// -------------------------------------
-// Manejo del input principal de productos
-function handleEnterProductos(event) {
-    if (event.key === 'Enter') {
-        const input = event.target;
-        const texto = input.value.trim();
-        if (texto) {
-            procesarPedidoTexto(texto);
-            // CAMBIO: Limpiamos el input después de la búsqueda (Solución al Punto #3)
-            input.value = ''; 
-        }
-    }
-}
-
-function toggleRecordingProductos() {
-    if (!recognition) {
-        alert('Tu navegador no soporta reconocimiento de voz');
+// Inicializar reconocimiento de voz
+function inicializarReconocimientoVoz() {
+    if (!('webkitSpeechRecognition' in window)) {
+        console.log('Reconocimiento de voz no disponible');
         return;
     }
-
-    const micButton = document.getElementById('micProductos');
-    const inputProductos = document.getElementById('inputProductos'); // Obtenemos referencia al input
     
-    if (isRecording) {
-        recognition.stop();
-        micButton.classList.remove('recording');
-        isRecording = false;
-    } else {
-        recognition.start();
-        micButton.classList.add('recording');
-        isRecording = true;
-        
-        // --- ESTA ES LA PARTE CORREGIDA ---
-        recognition.onresult = function(event) {
-            const texto = event.results[0][0].transcript.trim();
-            
-            // 1. Opcional: Mostramos el texto transcrito en el input para feedback visual.
-            inputProductos.value = texto;
-            
-            // 2. ¡La clave! Llamamos a la misma función que usa la tecla "Enter".
-            // Esta función ahora se encarga de todo: llamar a la API, actualizar el estado y renderizar.
-            if (texto) {
-                procesarPedidoTexto(texto);
-            }
-            
-            // 3. Mejora de UX: Limpiamos el input después de procesar, igual que con "Enter".
-            inputProductos.value = '';
-        };
-        
-        recognition.onend = function() {
-            micButton.classList.remove('recording');
-            isRecording = false;
-        };
+    // Para búsqueda de cliente
+    estadoApp.recognitionCliente = new webkitSpeechRecognition();
+    estadoApp.recognitionCliente.continuous = false;
+    estadoApp.recognitionCliente.interimResults = false;
+    estadoApp.recognitionCliente.lang = 'es-PE';
+    
+    estadoApp.recognitionCliente.onresult = function(event) {
+        const texto = event.results[0][0].transcript;
+        document.getElementById('inputBusquedaCliente').value = texto;
+        buscarCliente(texto);
+    };
+    
+    estadoApp.recognitionCliente.onend = function() {
+        estadoApp.isRecordingCliente = false;
+        document.getElementById('micCliente').classList.remove('recording');
+    };
+    
+    // Para productos
+    estadoApp.recognitionProductos = new webkitSpeechRecognition();
+    estadoApp.recognitionProductos.continuous = false;
+    estadoApp.recognitionProductos.interimResults = false;
+    estadoApp.recognitionProductos.lang = 'es-PE';
+    
+    estadoApp.recognitionProductos.onresult = function(event) {
+        const texto = event.results[0][0].transcript;
+        document.getElementById('inputProductos').value = texto;
+        procesarPedidoTexto(texto);
+    };
+    
+    estadoApp.recognitionProductos.onend = function() {
+        estadoApp.isRecordingProductos = false;
+        document.getElementById('micProductos').classList.remove('recording');
+    };
+}
 
-        recognition.onerror = function(event) {
-            console.error("Error en reconocimiento de voz:", event.error);
-            micButton.classList.remove('recording');
-            isRecording = false;
+// Dictado para cliente
+function iniciarDictadoCliente() {
+    if (!estadoApp.recognitionCliente) return;
+    
+    if (estadoApp.isRecordingCliente) {
+        estadoApp.recognitionCliente.stop();
+    } else {
+        estadoApp.recognitionCliente.start();
+        estadoApp.isRecordingCliente = true;
+        document.getElementById('micCliente').classList.add('recording');
+    }
+}
+
+// Dictado para productos
+function iniciarDictadoProductos() {
+    if (!estadoApp.recognitionProductos || !estadoApp.clienteSeleccionado) return;
+    
+    if (estadoApp.isRecordingProductos) {
+        estadoApp.recognitionProductos.stop();
+    } else {
+        estadoApp.recognitionProductos.start();
+        estadoApp.isRecordingProductos = true;
+        document.getElementById('micProductos').classList.add('recording');
+    }
+}
+
+// GESTIÓN DE UBICACIÓN
+async function solicitarUbicacion() {
+    if (!navigator.geolocation) {
+        alert('Tu navegador no soporta geolocalización');
+        return;
+    }
+    
+    try {
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        });
+        
+        estadoApp.ubicacion = {
+            latitud: position.coords.latitude,
+            longitud: position.coords.longitude,
+            precision: position.coords.accuracy,
+            timestamp: new Date().toISOString()
+        };
+        
+        actualizarEstadoUbicacion();
+        cerrarModal('modalUbicacion');
+        
+        // Guardar en servidor
+        await guardarUbicacion(estadoApp.ubicacion);
+        
+    } catch (error) {
+        alert('No se pudo obtener la ubicación. Por favor, permite el acceso en tu navegador.');
+    }
+}
+
+function actualizarEstadoUbicacion() {
+    const btnUbicacion = document.getElementById('btnUbicacion');
+    const estadoTexto = document.getElementById('estadoUbicacion');
+    
+    if (estadoApp.ubicacion) {
+        btnUbicacion.classList.add('activo');
+        estadoTexto.textContent = 'Ubicación OK';
+    } else {
+        btnUbicacion.classList.remove('activo');
+        btnUbicacion.classList.add('alerta');
+        estadoTexto.textContent = 'Sin ubicación';
+    }
+}
+
+async function guardarUbicacion(ubicacion) {
+    try {
+        await fetch('/api/vendedor/ubicacion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${estadoApp.token}`
+            },
+            body: JSON.stringify(ubicacion)
+        });
+    } catch (error) {
+        console.error('Error guardando ubicación:', error);
+    }
+}
+
+function mostrarModalUbicacion() {
+    const modal = document.getElementById('modalUbicacion');
+    const contenido = document.getElementById('contenidoUbicacion');
+    
+    if (estadoApp.ubicacion) {
+        let html = `
+            <div style="padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-bottom: 12px;">
+                <p style="color: #22c55e; font-weight: 600; margin-bottom: 8px;">✓ Ubicación compartida</p>
+                <p style="font-size: 13px; color: #93c5fd;">Latitud: ${estadoApp.ubicacion.latitud.toFixed(6)}</p>
+                <p style="font-size: 13px; color: #93c5fd;">Longitud: ${estadoApp.ubicacion.longitud.toFixed(6)}</p>
+                <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Precisión: ±${Math.round(estadoApp.ubicacion.precision)}m</p>
+            </div>
+        `;
+        
+        // Si hay cliente seleccionado con coordenadas, mostrar comparación
+        if (estadoApp.clienteSeleccionado && estadoApp.clienteSeleccionado.latitud) {
+            const distancia = calcularDistancia(
+                estadoApp.ubicacion.latitud,
+                estadoApp.ubicacion.longitud,
+                estadoApp.clienteSeleccionado.latitud,
+                estadoApp.clienteSeleccionado.longitud
+            );
+            
+            const porcentaje = calcularPorcentajeCoincidencia(distancia);
+            const clase = porcentaje >= 80 ? 'alta' : porcentaje >= 50 ? 'media' : 'baja';
+            
+            html += `
+                <div class="alert-coincidencia ${clase}">
+                    <p style="font-weight: 600; margin-bottom: 4px;">Comparación con bodega</p>
+                    <p style="font-size: 13px;">Distancia: ${distancia.toFixed(0)}m</p>
+                    <p style="font-size: 13px;">Coincidencia: ${porcentaje}%</p>
+                </div>
+            `;
+        }
+        
+        html += `<button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">Actualizar Ubicación</button>`;
+        contenido.innerHTML = html;
+    } else {
+        contenido.innerHTML = `<button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            </svg>
+            Compartir Ubicación
+        </button>`;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+// Calcular distancia entre dos puntos (fórmula de Haversine)
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distancia en metros
+}
+
+// Calcular porcentaje de coincidencia (0-100%)
+function calcularPorcentajeCoincidencia(distanciaMetros) {
+    const MAX_DISTANCIA = 20; // 20 metros como máximo válido
+    if (distanciaMetros <= MAX_DISTANCIA) {
+        return Math.round((1 - distanciaMetros / MAX_DISTANCIA) * 100);
+    }
+    return 0;
+}
+
+// BÚSQUEDA DE CLIENTES
+async function buscarCliente(query) {
+    try {
+        // Tu endpoint espera el parámetro 'q'
+        const url = `/api/clientes/buscar?q=${encodeURIComponent(query)}`;
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${estadoApp.token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // Adaptar según la estructura de tu respuesta
+            const clientes = data.clientes || data.data || [data];
+            mostrarResultadosClientes(clientes);
+        } else {
+            console.error('Error en búsqueda:', response.status);
+            ocultarDropdownClientes();
+        }
+    } catch (error) {
+        console.error('Error buscando cliente:', error);
+        ocultarDropdownClientes();
+    }
+}
+
+function determinarTipoBusqueda(query) {
+    const soloNumeros = /^\d+$/.test(query);
+    
+    if (soloNumeros) {
+        if (query.length === 11) return 'ruc';
+        if (query.length === 9) return 'whatsapp';
+    }
+    return 'nombre';
+}
+
+function mostrarResultadosClientes(clientes) {
+    const dropdown = document.getElementById('dropdownClientes');
+    
+    if (!clientes || clientes.length === 0) {
+        dropdown.innerHTML = '<div class="empty-state">No se encontraron clientes</div>';
+        dropdown.classList.remove('hidden');
+        return;
+    }
+    
+    const html = clientes.map(cliente => {
+        // Usar estructura REAL de la tabla
+        const nombre = cliente.nombre_comercial || cliente.razon_social || `Cliente RUC ${cliente.ruc}`;
+        const ruc = cliente.ruc || 'N/D';
+        const tipo = cliente.tipo_cliente?.nombre || 'Cliente';
+        const direccion = cliente.distrito || cliente.direccion || '';
+        const id = cliente.id;
+        
+        // Guardar cliente en memoria temporal
+        window['cliente_' + id] = cliente;
+        
+        return `
+            <div class="resultado-cliente" onclick='seleccionarClienteTemp(${id})'>
+                <div class="resultado-cliente-nombre">${nombre}</div>
+                <div class="resultado-cliente-info">
+                    <span>RUC: ${ruc}</span>
+                    <span class="resultado-cliente-tag">${tipo}</span>
+                </div>
+                ${direccion ? `<div style="font-size: 11px; color: #6b7280; margin-top: 4px;">${direccion}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    dropdown.innerHTML = html;
+    dropdown.classList.remove('hidden');
+}
+
+// Función auxiliar para seleccionar desde el objeto temporal
+function seleccionarClienteTemp(clienteId) {
+    const cliente = window['cliente_' + clienteId];
+    if (cliente) {
+        seleccionarCliente(cliente);
+        // Limpiar referencia temporal
+        delete window['cliente_' + clienteId];
+    }
+}
+
+function ocultarDropdownClientes() {
+    document.getElementById('dropdownClientes').classList.add('hidden');
+}
+
+function seleccionarCliente(cliente) {
+    // Usar estructura REAL de la base de datos
+    const clienteNormalizado = {
+        id: cliente.id,
+        codigo_cliente: cliente.codigo_cliente || '',
+        nombre_comercial: cliente.nombre_comercial || '',
+        razon_social: cliente.razon_social || '',
+        ruc: cliente.ruc || '',
+        telefono: cliente.telefono || '',
+        email: cliente.email || '',
+        direccion: cliente.direccion || cliente.direccion_completa || '',
+        distrito: cliente.distrito || '',
+        provincia: cliente.provincia || '',
+        departamento: cliente.departamento || '',
+        latitud: cliente.latitud || null,
+        longitud: cliente.longitud || null,
+        tipo_cliente_id: cliente.tipo_cliente_id,
+        tipo_cliente_nombre: cliente.tipo_cliente?.nombre || 'Cliente',
+        // Nombre para mostrar
+        nombre_completo: cliente.nombre_comercial || cliente.razon_social || `Cliente RUC ${cliente.ruc}`
+    };
+    
+    estadoApp.clienteSeleccionado = clienteNormalizado;
+    
+    // Actualizar UI
+    document.getElementById('inputBusquedaCliente').value = '';
+    ocultarDropdownClientes();
+    
+    // Mostrar chip en header
+    const chip = document.getElementById('chipCliente');
+    document.getElementById('chipClienteNombre').textContent = clienteNormalizado.nombre_completo;
+    document.getElementById('chipClienteTipo').textContent = clienteNormalizado.tipo_cliente_nombre;
+    chip.classList.remove('hidden');
+    
+    // Compactar sección de búsqueda
+    document.getElementById('seccionBusquedaCliente').classList.add('compacta');
+    
+    // Habilitar input de productos
+    const inputProductos = document.getElementById('inputProductos');
+    const micProductos = document.getElementById('micProductos');
+    inputProductos.disabled = false;
+    micProductos.disabled = false;
+    inputProductos.focus();
+    
+    // Verificar si necesitamos ubicación
+    if (!estadoApp.ubicacion) {
+        setTimeout(() => {
+            //alert('Por favor, comparte tu ubicación para continuar');
+            mostrarModalUbicacion();
+        }, 500);
+    }
+}
+
+function cambiarCliente() {
+    if (estadoApp.pedido.length > 0) {
+        if (!confirm('¿Deseas cambiar de cliente? Se perderá el pedido actual.')) {
+            return;
         }
     }
+    
+    estadoApp.clienteSeleccionado = null;
+    estadoApp.pedido = [];
+    
+    // Ocultar chip
+    document.getElementById('chipCliente').classList.add('hidden');
+    
+    // Expandir sección de búsqueda
+    document.getElementById('seccionBusquedaCliente').classList.remove('compacta');
+    
+    // Deshabilitar productos
+    const inputProductos = document.getElementById('inputProductos');
+    const micProductos = document.getElementById('micProductos');
+    inputProductos.disabled = true;
+    micProductos.disabled = true;
+    inputProductos.value = '';
+    
+    // Limpiar productos
+    document.getElementById('productosContainer').classList.add('hidden');
+    
+    // Focus en búsqueda de cliente
+    document.getElementById('inputBusquedaCliente').focus();
+}
+
+// BÚSQUEDA DE PRODUCTOS
+async function buscarProductos(query) {
+    try {
+        const url = `/api/productos/buscar?q=${encodeURIComponent(query)}`;
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${estadoApp.token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const productos = data.data || [];
+            mostrarResultadosProductos(productos);
+        } else {
+            console.error('Error en búsqueda:', response.status);
+            ocultarDropdownProductos();
+        }
+    } catch (error) {
+        console.error('Error buscando productos:', error);
+        ocultarDropdownProductos();
+    }
+}
+
+function mostrarResultadosProductos(productos) {
+    const dropdown = document.getElementById('dropdownProductos');
+    const lista = document.getElementById('listaProductosDropdown');
+    
+    if (!productos || productos.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+    
+    const html = productos.map(producto => {
+        const estaSeleccionado = estadoApp.productosSeleccionados.has(producto.id);
+        const estaEnPedido = estadoApp.pedido.some(item => item.producto_id === producto.id);
+        
+        // Guardar en memoria temporal
+        window['prod_' + producto.id] = producto;
+        
+        return `
+            <div class="item-producto-dropdown ${estaSeleccionado ? 'seleccionado' : ''} ${estaEnPedido ? 'en-pedido' : ''}" 
+                 onclick="${estaEnPedido ? '' : `toggleSeleccionProducto(${producto.id})`}">
+                <input 
+                    type="checkbox" 
+                    class="producto-checkbox"
+                    ${estaSeleccionado ? 'checked' : ''}
+                    ${estaEnPedido ? 'disabled' : ''}
+                    onclick="event.stopPropagation()"
+                    onchange="toggleSeleccionProducto(${producto.id})"
+                />
+                <div class="producto-dropdown-info">
+                    <div class="producto-dropdown-nombre">${producto.nombre}</div>
+                    <div class="producto-dropdown-detalles">
+                        <span>Código: ${producto.codigo_producto}</span>
+                        ${producto.categoria ? `<span>• ${producto.categoria}</span>` : ''}
+                    </div>
+                    ${estaEnPedido ? '<div class="producto-ya-agregado">Ya está en el pedido</div>' : ''}
+                </div>
+                <div class="producto-dropdown-precio">
+                    S/ ${parseFloat(producto.precio_unitario).toFixed(2)}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    lista.innerHTML = html;
+    actualizarContadorSeleccionados();
+    dropdown.classList.remove('hidden');
+}
+
+function ocultarDropdownProductos() {
+    document.getElementById('dropdownProductos').classList.add('hidden');
+    estadoApp.productosSeleccionados.clear();
+    actualizarContadorSeleccionados();
+}
+
+function toggleSeleccionProducto(productoId) {
+    // Verificar si ya está en el pedido
+    if (estadoApp.pedido.some(item => item.producto_id === productoId)) {
+        return;
+    }
+    
+    if (estadoApp.productosSeleccionados.has(productoId)) {
+        estadoApp.productosSeleccionados.delete(productoId);
+    } else {
+        estadoApp.productosSeleccionados.add(productoId);
+    }
+    
+    actualizarContadorSeleccionados();
+    actualizarEstiloProductoDropdown(productoId);
+}
+
+function actualizarEstiloProductoDropdown(productoId) {
+    const items = document.querySelectorAll('.item-producto-dropdown');
+    items.forEach(item => {
+        const checkbox = item.querySelector('.producto-checkbox');
+        if (checkbox && !checkbox.disabled) {
+            const estaSeleccionado = estadoApp.productosSeleccionados.has(productoId);
+            if (item.querySelector(`input[onchange*="${productoId}"]`)) {
+                if (estaSeleccionado) {
+                    item.classList.add('seleccionado');
+                } else {
+                    item.classList.remove('seleccionado');
+                }
+            }
+        }
+    });
+}
+
+function actualizarContadorSeleccionados() {
+    const count = estadoApp.productosSeleccionados.size;
+    document.getElementById('countSeleccionados').textContent = `${count} seleccionado${count !== 1 ? 's' : ''}`;
+    
+    const btnAgregar = document.getElementById('btnAgregarProductos');
+    if (count > 0) {
+        btnAgregar.classList.remove('hidden');
+    } else {
+        btnAgregar.classList.add('hidden');
+    }
+}
+
+function agregarProductosSeleccionados() {
+    const nuevosItems = [];
+    
+    estadoApp.productosSeleccionados.forEach(prodId => {
+        const producto = window['prod_' + prodId];
+        if (producto && !estadoApp.pedido.find(item => item.producto_id === prodId)) {
+            nuevosItems.push({
+                producto_id: producto.id,
+                codigo_producto: producto.codigo_producto,
+                nombre: producto.nombre,
+                cantidad: 1,
+                unidad: 'unidad', // Ajustar según tu lógica
+                precio_unitario: parseFloat(producto.precio_unitario),
+                subtotal: parseFloat(producto.precio_unitario)
+            });
+        }
+    });
+    
+    if (nuevosItems.length > 0) {
+        estadoApp.pedido.push(...nuevosItems);
+        estadoApp.productosSeleccionados.clear();
+        document.getElementById('inputProductos').value = '';
+        ocultarDropdownProductos();
+        mostrarProductosPedido();
+    }
+}
+
+// Eliminar función handleEnterProductos ya que ahora es búsqueda en tiempo real
+function handleEnterProductos(event) {
+    // Mantener por compatibilidad pero ya no se usa
 }
 
 async function procesarPedidoTexto(texto) {
+    if (!estadoApp.clienteSeleccionado) {
+        alert('Primero selecciona un cliente');
+        return;
+    }
+    
+    if (!estadoApp.ubicacion) {
+        alert('Primero comparte tu ubicación');
+        mostrarModalUbicacion();
+        return;
+    }
+    
     document.getElementById('procesandoProductos').classList.remove('hidden');
     
     try {
         const response = await fetch('/api/pedidos/procesar-texto', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ texto: texto, es_voz: false })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${estadoApp.token}`
+            },
+            body: JSON.stringify({
+                texto: texto,
+                es_voz: false
+            })
         });
         
         const data = await response.json();
         
-        if (data.success && data.data.length > 0) {
-            // CAMBIO: Llamamos a la nueva función que actualiza el estado inteligentemente.
-            actualizarItemsDelPedido(data.data);
+        if (data.success && data.data && data.data.length > 0) {
+            // Convertir los productos detectados al formato del pedido
+            const productosParaPedido = data.data
+                .filter(p => p.encontrado) // Solo productos encontrados en BD
+                .map(p => ({
+                    producto_id: p.producto_id,
+                    codigo_producto: p.codigo_producto || 'N/D',
+                    nombre: p.nombre,
+                    cantidad: p.cantidad,
+                    unidad: p.unidad,
+                    precio_unitario: p.precio_unitario,
+                    subtotal: p.precio_total
+                }));
+            
+            if (productosParaPedido.length > 0) {
+                actualizarItemsDelPedido(productosParaPedido);
+            } else {
+                alert('No se encontraron productos en la base de datos');
+            }
+            
+            // Mostrar productos no encontrados
+            const noEncontrados = data.data.filter(p => !p.encontrado);
+            if (noEncontrados.length > 0) {
+                console.warn('Productos no encontrados:', noEncontrados.map(p => p.nombre));
+            }
         } else {
-            alert('No se pudieron identificar productos en el texto');
+            alert(data.message || 'No se pudieron identificar productos');
         }
     } catch (error) {
         console.error('Error procesando pedido:', error);
@@ -356,455 +731,334 @@ async function procesarPedidoTexto(texto) {
     }
 }
 
-
-// CAMBIO: Nueva función central para manejar los productos que llegan de la API (Solución al Punto #1)
-function actualizarItemsDelPedido(productosDetectados) {
-    productosDetectados.forEach(productoNuevo => {
-        // CAMBIO: Lógica para manejar productos no encontrados (Solución al Punto #4)
-        if (!productoNuevo.encontrado) {
-            // Por ahora solo lo registramos, podrías mostrarlo en otra lista
-            estadoPedido.itemsNoEncontrados.push(productoNuevo);
-            console.warn("Producto no encontrado:", productoNuevo.nombre);
-            return; // No continuamos con este item
-        }
-
-        // Buscamos si el producto ya existe en nuestro pedido actual
-        const itemExistente = estadoPedido.items.find(item => item.producto_id === productoNuevo.producto_id);
-
-        if (itemExistente) {
-            // Si ya existe, actualizamos la cantidad y recalculamos su subtotal
-            itemExistente.cantidad += productoNuevo.cantidad;
-            itemExistente.subtotal = itemExistente.cantidad * itemExistente.precio_unitario;
+function actualizarItemsDelPedido(nuevosProductos) {
+    nuevosProductos.forEach(producto => {
+        const index = estadoApp.pedido.findIndex(item => item.producto_id === producto.producto_id);
+        
+        if (index >= 0) {
+            // Actualizar cantidad si ya existe
+            estadoApp.pedido[index].cantidad += producto.cantidad;
+            estadoApp.pedido[index].subtotal = estadoApp.pedido[index].cantidad * estadoApp.pedido[index].precio_unitario;
         } else {
-            // Si es nuevo, lo añadimos al estado del pedido
-            estadoPedido.items.push({
-                producto_id: productoNuevo.producto_id,
-                nombre: productoNuevo.nombre,
-                codigo_producto: productoNuevo.codigo_producto,
-                cantidad: productoNuevo.cantidad,
-                unidad: productoNuevo.unidad,
-                precio_unitario: productoNuevo.precio_unitario,
-                subtotal: productoNuevo.precio_total, // Usamos el total que ya calculó el backend
-                encontrado: true
-            });
+            // Agregar nuevo producto
+            estadoApp.pedido.push(producto);
         }
     });
-
-    // CAMBIO: Después de modificar el estado, SIEMPRE llamamos a renderizar para actualizar la UI.
-    renderizarPedidoCompleto();
+    
+    mostrarProductosPedido();
 }
 
-// -------------------------------------
-// 5. FUNCIONES DE RENDERIZADO (UI)
-// -------------------------------------
-
-// CAMBIO: Nueva función central para dibujar la lista de productos y el total.
-function renderizarPedidoCompleto() {
-    mostrarProductosIdentificados();
-    actualizarTotal();
-}
-
-
-function mostrarProductosIdentificados() {
+function mostrarProductosPedido() {
     const container = document.getElementById('productosContainer');
     const lista = document.getElementById('listaProductos');
-
-    // CAMBIO: Leemos directamente desde nuestro estado 'estadoPedido.items'.
-    if (estadoPedido.items.length === 0) {
+    
+    if (estadoApp.pedido.length === 0) {
         container.classList.add('hidden');
-        lista.innerHTML = '';
         return;
     }
-
-    lista.innerHTML = estadoPedido.items.map(producto => {
-        const precioUnitario = `S/ ${producto.precio_unitario.toFixed(2)}`;
-        const subtotal = `S/ ${producto.subtotal.toFixed(2)}`;
-        
-        // Usamos una clave única para cada producto en el DOM
-        const productoKey = `prod-${producto.producto_id}`;
-
-        return `
-            <div class="bg-white/5 p-3 rounded-lg border border-white/10">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h4 class="text-white font-medium text-sm">${producto.nombre}</h4>
-                        <p class="text-blue-200 text-xs">Código: ${producto.codigo_producto ?? 'N/D'}</p>
-                        <div class="flex items-center space-x-2 mt-1">
-                            <button onclick="cambiarCantidad('${productoKey}', -1)" class="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs">-</button>
-                            <span class="text-white font-semibold" id="cantidad_${productoKey}">${producto.cantidad}</span>
-                            <button onclick="cambiarCantidad('${productoKey}', 1)" class="w-6 h-6 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white text-xs">+</button>
-                            <span class="text-blue-200 text-xs ml-2">${producto.unidad}</span>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-white font-semibold">${precioUnitario}</p>
-                        <p class="text-green-400 font-bold" id="subtotal_${productoKey}">${subtotal}</p>
-                    </div>
-                </div>
+    
+    const html = estadoApp.pedido.map(producto => `
+        <div class="item-producto" id="prod-${producto.producto_id}">
+            <div class="producto-info">
+                <div class="producto-nombre">${producto.nombre}</div>
+                <div class="producto-codigo">Código: ${producto.codigo_producto || 'N/D'}</div>
             </div>
-        `;
-    }).join('');
-
+            <div class="producto-controles">
+                <div class="cantidad-control">
+                    <button class="btn-cantidad" onclick="actualizarCantidad(${producto.producto_id}, ${producto.cantidad - 1})">
+                        <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                        </svg>
+                    </button>
+                    <div class="cantidad-valor">
+                        <div class="cantidad-numero">${producto.cantidad}</div>
+                        <div class="cantidad-unidad">${producto.unidad}</div>
+                    </div>
+                    <button class="btn-cantidad" onclick="actualizarCantidad(${producto.producto_id}, ${producto.cantidad + 1})">
+                        <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="producto-precios">
+                    <div class="precio-unitario">S/ ${producto.precio_unitario.toFixed(2)}</div>
+                    <div class="precio-subtotal">S/ ${producto.subtotal.toFixed(2)}</div>
+                </div>
+                <button class="btn-eliminar" onclick="eliminarProducto(${producto.producto_id})">
+                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    lista.innerHTML = html;
+    actualizarTotal();
     container.classList.remove('hidden');
 }
 
-
-function cambiarCantidad(productoKey, cambio) {
-    const productoId = parseInt(productoKey.split('-')[1]);
-    // CAMBIO: Buscamos y modificamos el producto en nuestro estado central.
-    const producto = estadoPedido.items.find(p => p.producto_id === productoId);
+function actualizarCantidad(productoId, nuevaCantidad) {
+    if (nuevaCantidad < 1) return;
     
+    const producto = estadoApp.pedido.find(p => p.producto_id === productoId);
     if (producto) {
-        producto.cantidad += cambio;
-        if (producto.cantidad <= 0) {
-            // Si la cantidad es 0 o menos, eliminamos el item del pedido.
-            estadoPedido.items = estadoPedido.items.filter(p => p.producto_id !== productoId);
-        } else {
-            producto.subtotal = producto.cantidad * producto.precio_unitario;
-        }
-        
-        // CAMBIO: Después de cualquier cambio, redibujamos todo para asegurar consistencia.
-        renderizarPedidoCompleto();
+        producto.cantidad = nuevaCantidad;
+        producto.subtotal = producto.cantidad * producto.precio_unitario;
+        mostrarProductosPedido();
+    }
+}
+
+function eliminarProducto(productoId) {
+    estadoApp.pedido = estadoApp.pedido.filter(p => p.producto_id !== productoId);
+    mostrarProductosPedido();
+}
+
+function limpiarPedido() {
+    if (confirm('¿Deseas limpiar todos los productos del pedido?')) {
+        estadoApp.pedido = [];
+        mostrarProductosPedido();
     }
 }
 
 function actualizarTotal() {
-    // CAMBIO: Calculamos el total leyendo siempre desde el estado.
-    const total = estadoPedido.items.reduce((sum, p) => sum + (p.subtotal || 0), 0);
+    const total = estadoApp.pedido.reduce((sum, p) => sum + p.subtotal, 0);
     document.getElementById('totalPedido').textContent = `S/ ${total.toFixed(2)}`;
 }
 
-function limpiarPedido() {
-    // CAMBIO: Limpiar es tan simple como resetear el estado y volver a renderizar.
-    estadoPedido.items = [];
-    estadoPedido.itemsNoEncontrados = [];
-    renderizarPedidoCompleto();
-    document.getElementById('inputProductos').value = '';
-}
-
-// -------------------------------------
-// 6. LÓGICA DE CLIENTES Y MODAL (SIN CAMBIOS SIGNIFICATIVOS)
-// -------------------------------------
-function abrirModalCliente() {
-    // CAMBIO: Verificamos el estado en lugar de una variable separada.
-    if (estadoPedido.items.length === 0) {
-        alert('Agrega productos al pedido primero');
-        return;
-    }
-    document.getElementById('modalCliente').classList.remove('hidden');
-}
-
-function cerrarModalCliente() {
-    document.getElementById('modalCliente').classList.add('hidden');
-}
-
-// Búsqueda de bodeguero
-let timeoutBusquedaBodeguero;
-function buscarBodegueroEnTiempoReal() {
-    clearTimeout(timeoutBusquedaBodeguero);
-    const termino = document.getElementById('busquedaBodeguero').value;
-    
-    if (termino.length < 2) {
-        document.getElementById('resultadosBusquedaBodeguero').innerHTML = '';
+// CONFIRMAR Y ENVIAR PEDIDO
+function confirmarPedido() {
+    if (estadoApp.pedido.length === 0) {
+        alert('Agrega productos al pedido');
         return;
     }
     
-    timeoutBusquedaBodeguero = setTimeout(() => {
-        realizarBusquedaBodeguero(termino);
-    }, 300);
-}
-
-async function realizarBusquedaBodeguero(termino) {
-    try {
-        const response = await fetch('/api/clientes/buscar-por-voz', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                texto: termino,
-                es_voz: false
-            })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            mostrarResultadosBusquedaBodeguero(data.data);
-        }
-    } catch (error) {
-        console.error('Error en búsqueda:', error);
-    }
-}
-
-function mostrarResultadosBusquedaBodeguero(clientes) {
-    const container = document.getElementById('resultadosBusquedaBodeguero');
-    
-    if (clientes.length === 0) {
-        container.innerHTML = '<p class="text-blue-300 text-center py-2 text-sm">No se encontraron bodegueros</p>';
+    if (!estadoApp.ubicacion) {
+        alert('Por favor, comparte tu ubicación');
+        mostrarModalUbicacion();
         return;
     }
     
-    container.innerHTML = clientes.map(cliente => `
-        <div class="bg-white/5 p-3 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                onclick="seleccionarCliente(${JSON.stringify(cliente).replace(/"/g, '&quot;')})">
-            <h4 class="text-white font-medium text-sm">${cliente.nombre_comercial}</h4>
-            <p class="text-blue-200 text-xs">${cliente.ruc || 'Sin RUC'} - ${cliente.distrito}</p>
-            <p class="text-blue-300 text-xs">${cliente.telefono}</p>
-        </div>
-    `).join('');
-}
-
-function seleccionarCliente(cliente) {
-    clienteSeleccionado = cliente;
-    document.getElementById('busquedaBodeguero').value = cliente.nombre_comercial;
-    document.getElementById('resultadosBusquedaBodeguero').innerHTML = '';
-    document.getElementById('formularioNuevaBodega').classList.add('hidden');
-}
-
-function toggleRecordingBodeguero() {
-    if (!recognition) {
-        alert('Tu navegador no soporta reconocimiento de voz');
-        return;
-    }
-
-    const micButton = document.getElementById('micBodeguero');
-    
-    if (isRecording) {
-        recognition.stop();
-        micButton.classList.remove('recording');
-        isRecording = false;
-    } else {
-        recognition.start();
-        micButton.classList.add('recording');
-        isRecording = true;
+    // Calcular coincidencia de ubicación
+    if (estadoApp.clienteSeleccionado.latitud && estadoApp.clienteSeleccionado.longitud) {
+        const distancia = calcularDistancia(
+            estadoApp.ubicacion.latitud,
+            estadoApp.ubicacion.longitud,
+            estadoApp.clienteSeleccionado.latitud,
+            estadoApp.clienteSeleccionado.longitud
+        );
         
-        recognition.onresult = function(event) {
-            const texto = event.results[0][0].transcript;
-            document.getElementById('busquedaBodeguero').value = texto;
-            realizarBusquedaBodeguero(texto);
-        };
+        const porcentaje = calcularPorcentajeCoincidencia(distancia);
+        const alertDiv = document.getElementById('alertCoincidencia');
+        const clase = porcentaje >= 80 ? 'alta' : porcentaje >= 50 ? 'media' : 'baja';
         
-        recognition.onend = function() {
-            micButton.classList.remove('recording');
-            isRecording = false;
-        };
-    }
-}
-
-// Gestión de nueva bodega
-function mostrarFormularioNuevaBodega() {
-    document.getElementById('formularioNuevaBodega').classList.remove('hidden');
-}
-
-let timeoutValidacionRuc;
-function validarRucEnTiempoReal() {
-    clearTimeout(timeoutValidacionRuc);
-    const ruc = document.getElementById('nuevoRuc').value;
-    
-    if (ruc.length !== 11 || !/^\d+$/.test(ruc)) {
-        document.getElementById('resultadoValidacionRuc').innerHTML = '';
-        return;
-    }
-    
-    document.getElementById('validandoRuc').classList.remove('hidden');
-    
-    timeoutValidacionRuc = setTimeout(() => {
-        consultarApiSunat(ruc);
-    }, 500);
-}
-
-async function consultarApiSunat(ruc) {
-    try {
-        // Simulación de API SUNAT - En producción usar API real
-        // const response = await fetch(`/api/sunat/consultar-ruc/${ruc}`);
-        
-        // Simulación de respuesta de API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const datosSimulados = {
-            success: true,
-            data: {
-                ruc: ruc,
-                razon_social: "BODEGA SAN MARTIN E.I.R.L.",
-                nombre_comercial: "Bodega San Martin",
-                estado: "ACTIVO",
-                direccion: "No disponible en SUNAT"
-            }
-        };
-        
-        if (datosSimulados.success) {
-            document.getElementById('nuevaRazonSocial').value = datosSimulados.data.razon_social;
-            document.getElementById('nuevoNombreComercial').value = datosSimulados.data.nombre_comercial;
-            
-            document.getElementById('resultadoValidacionRuc').innerHTML = `
-                <span class="text-green-400">✓ RUC válido - ${datosSimulados.data.estado}</span>
-            `;
-        } else {
-            document.getElementById('resultadoValidacionRuc').innerHTML = `
-                <span class="text-red-400">✗ RUC no encontrado</span>
-            `;
-        }
-    } catch (error) {
-        document.getElementById('resultadoValidacionRuc').innerHTML = `
-            <span class="text-yellow-400">⚠ Error validando RUC</span>
+        alertDiv.className = `alert-coincidencia ${clase}`;
+        alertDiv.innerHTML = `
+            <strong>Verificación de ubicación:</strong><br>
+            Distancia a la bodega: ${distancia.toFixed(0)}m | Coincidencia: ${porcentaje}%
         `;
-    } finally {
-        document.getElementById('validandoRuc').classList.add('hidden');
-    }
-}
-
-async function registrarNuevaBodega() {
-    const nuevaBodega = {
-        ruc: document.getElementById('nuevoRuc').value,
-        razon_social: document.getElementById('nuevaRazonSocial').value,
-        nombre_comercial: document.getElementById('nuevoNombreComercial').value,
-        direccion_completa: document.getElementById('nuevaDireccion').value,
-        distrito: document.getElementById('nuevoDistrito').value,
-        provincia: document.getElementById('nuevaProvincia').value,
-        departamento: document.getElementById('nuevaRegion').value,
-        telefono: document.getElementById('nuevoTelefono').value,
-        persona_pedido: document.getElementById('personaPedido').value
-    };
-    
-    // Validaciones básicas
-    if (!nuevaBodega.nombre_comercial || !nuevaBodega.telefono) {
-        alert('Nombre comercial y teléfono son obligatorios');
-        return;
     }
     
-    try {
-        const response = await fetch('/api/clientes/registrar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(nuevaBodega)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            clienteSeleccionado = data.data;
-            alert('Bodega registrada correctamente');
-            document.getElementById('formularioNuevaBodega').classList.add('hidden');
-            document.getElementById('busquedaBodeguero').value = nuevaBodega.nombre_comercial;
-            
-            // Limpiar formulario
-            ['nuevoRuc', 'nuevaRazonSocial', 'nuevoNombreComercial', 'nuevaDireccion', 
-                'nuevoDistrito', 'nuevaProvincia', 'nuevaRegion', 'nuevoTelefono', 'personaPedido']
-                .forEach(id => document.getElementById(id).value = '');
-        } else {
-            alert('Error registrando bodega: ' + data.message);
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error de conexión');
-    }
+    abrirModal('modalConfirmarPedido');
 }
 
 async function enviarPedidoFinal() {
-    // CAMBIO: Aseguramos que se use el estado central.
-    if (!estadoPedido.cliente) { // Usamos estadoPedido.cliente
-        alert('Selecciona o registra una bodega primero');
-        return;
+    const modalidadPago = document.getElementById('modalidadPago').value;
+    const observaciones = document.getElementById('observacionesPedido').value.trim();
+    
+    // Mapear modalidad de pago al enum correcto
+    let tipoPago = "contado"; // valor por defecto
+    if (modalidadPago.includes('credito')) {
+        tipoPago = "credito";
+    } else if (modalidadPago.includes('yape')) {
+        tipoPago = "yape";
+    } else if (modalidadPago.includes('plin')) {
+        tipoPago = "plin";
     }
-
-    if (estadoPedido.items.length === 0) {
-        alert('No hay productos en el pedido');
-        return;
+    
+    // Calcular porcentaje de coincidencia
+    let porcentajeCoincidencia = 0;
+    if (estadoApp.clienteSeleccionado.latitud && estadoApp.clienteSeleccionado.longitud) {
+        const distancia = calcularDistancia(
+            estadoApp.ubicacion.latitud,
+            estadoApp.ubicacion.longitud,
+            estadoApp.clienteSeleccionado.latitud,
+            estadoApp.clienteSeleccionado.longitud
+        );
+        porcentajeCoincidencia = calcularPorcentajeCoincidencia(distancia);
     }
-
+    
+    // Estructura según tu PedidoCreate schema con valores MINÚSCULAS
     const pedidoData = {
-        productos: estadoPedido.items, // Usamos estadoPedido.items
-        cliente_id: estadoPedido.cliente.cliente_id,
-        modalidad_pago: document.getElementById('modalidadPago').value,
-        plazo_pago: getPlazoPago(document.getElementById('modalidadPago').value),
-        observaciones: document.getElementById('observacionesPedido').value,
-        coordenadas: await obtenerUbicacionActual()
+        cliente_id: estadoApp.clienteSeleccionado.id,
+        tipo_venta: "externa", // minúscula según tu enum
+        tipo_pago: tipoPago,   // minúscula según tu enum
+        latitud_pedido: estadoApp.ubicacion.latitud,
+        longitud_pedido: estadoApp.ubicacion.longitud,
+        observaciones: observaciones,
+        items: estadoApp.pedido.map(item => ({
+            producto_id: item.producto_id,
+            cantidad: item.cantidad,
+            override_tipo_cliente_id: null
+        }))
     };
-
+    
     try {
-        document.getElementById('btnEnviarPedido').disabled = true;
-        document.getElementById('btnEnviarPedido').textContent = 'Enviando...';
-
-        const response = await fetch('/api/pedidos/confirmar', {
+        const response = await fetch('/api/pedidos', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${estadoApp.token}`
             },
             body: JSON.stringify(pedidoData)
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-            alert(`¡Pedido enviado exitosamente!\nNúmero: ${data.data.numero_pedido}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            alert(`¡Pedido ${data.data.numero_pedido} creado exitosamente!\nTotal: S/ ${data.data.total.toFixed(2)}`);
             
-            // Limpiar todo
-            limpiarPedido();
-            cerrarModalCliente();
-            clienteSeleccionado = null;
-            document.getElementById('busquedaBodeguero').value = '';
-            document.getElementById('modalidadPago').value = 'credito_15_dias';
+            // Limpiar estado
+            estadoApp.pedido = [];
             document.getElementById('observacionesPedido').value = '';
+            cerrarModal('modalConfirmarPedido');
+            mostrarProductosPedido();
             
-            // Recargar estadísticas
+            // Actualizar estadísticas
             cargarEstadisticas();
-            cargarPedidosRecientes();
         } else {
-            alert('Error enviando pedido: ' + data.message);
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'No se pudo crear el pedido'}`);
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error de conexión');
-    } finally {
-        document.getElementById('btnEnviarPedido').disabled = false;
-        document.getElementById('btnEnviarPedido').textContent = 'ENVIAR PEDIDO';
+        console.error('Error enviando pedido:', error);
+        alert('Error al enviar el pedido');
     }
 }
 
-function getPlazoPago(modalidad) {
-    const plazos = {
-        'efectivo_cash': 0,
-        'efectivo_yape': 0,
-        'efectivo_plin': 0,
-        'credito_15_dias': 15,
-        'credito_30_dias': 30,
-        'credito_45_dias': 45
-    };
-    return plazos[modalidad] || 15;
+// NUEVO CLIENTE
+function abrirModalNuevoCliente() {
+    abrirModal('modalNuevoCliente');
 }
 
-async function obtenerUbicacionActual() {
-    return new Promise((resolve) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    });
-                },
-                () => {
-                    resolve({ lat: -12.0464, lng: -77.0428 }); // Lima por defecto
-                }
-            );
-        } else {
-            resolve({ lat: -12.0464, lng: -77.0428 });
+async function validarRuc(ruc) {
+    const spinner = document.getElementById('validandoRuc');
+    const resultado = document.getElementById('resultadoValidacionRuc');
+    
+    spinner.classList.remove('hidden');
+    resultado.innerHTML = '';
+    
+    try {
+        const response = await fetch(`/api/utils/ruc/${ruc}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('nuevaRazonSocial').value = data.razon_social || '';
+                document.getElementById('nuevaDireccion').value = data.direccion || '';
+                document.getElementById('nuevoDistrito').value = data.distrito || '';
+                document.getElementById('nuevaProvincia').value = data.provincia || '';
+                document.getElementById('nuevaRegion').value = data.departamento || '';
+                
+                resultado.className = 'validation-message success';
+                resultado.textContent = '✓ RUC válido - Datos cargados';
+            } else {
+                resultado.className = 'validation-message error';
+                resultado.textContent = '✗ RUC no encontrado';
+            }
         }
-    });
+    } catch (error) {
+        resultado.className = 'validation-message error';
+        resultado.textContent = '✗ Error validando RUC';
+    } finally {
+        spinner.classList.add('hidden');
+    }
 }
 
-function actualizarPedidos() {
-    cargarPedidosRecientes();
-    cargarEstadisticas();
+async function registrarNuevoCliente() {
+    const nuevoCliente = {
+        ruc: document.getElementById('nuevoRuc').value.trim(),
+        razon_social: document.getElementById('nuevaRazonSocial').value.trim(),
+        nombre_comercial: document.getElementById('nuevoNombreComercial').value.trim(),
+        direccion: document.getElementById('nuevaDireccion').value.trim(),
+        distrito: document.getElementById('nuevoDistrito').value.trim(),
+        provincia: document.getElementById('nuevaProvincia').value.trim(),
+        region: document.getElementById('nuevaRegion').value.trim(),
+        telefono: document.getElementById('nuevoTelefono').value.trim(),
+        persona_pedido: document.getElementById('personaPedido').value.trim(),
+        latitud: estadoApp.ubicacion?.latitud,
+        longitud: estadoApp.ubicacion?.longitud
+    };
+    
+    if (!nuevoCliente.ruc || !nuevoCliente.razon_social) {
+        alert('Completa los campos obligatorios');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/clientes/crear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${estadoApp.token}`
+            },
+            body: JSON.stringify(nuevoCliente)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            alert('Cliente registrado exitosamente');
+            cerrarModal('modalNuevoCliente');
+            
+            // Seleccionar automáticamente el nuevo cliente
+            seleccionarCliente(data.cliente);
+            
+            // Limpiar formulario
+            document.getElementById('formNuevoCliente').reset();
+        } else {
+            alert('Error al registrar cliente');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al registrar cliente');
+    }
+}
+
+// MODALES DE ESTADÍSTICAS
+function mostrarModalMeta() {
+    alert('Modal de Meta - En desarrollo');
+}
+
+function mostrarModalPedidos() {
+    alert('Modal de Pedidos del día - En desarrollo');
+}
+
+function mostrarModalRanking() {
+    alert('Modal de Ranking - En desarrollo');
+}
+
+function mostrarMenuMas() {
+    alert('Menú adicional - En desarrollo');
+}
+
+// UTILIDADES
+function abrirModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+}
+
+function cerrarModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
 }
 
 function logout() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    window.location.href = '/';
+    if (confirm('¿Deseas cerrar sesión?')) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        window.location.href = '/';
+    }
+}
+
+async function actualizarPedidos() {
+    // Implementar según tu endpoint de pedidos recientes
+    console.log('Actualizando pedidos recientes...');
 }
