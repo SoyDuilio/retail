@@ -42,6 +42,8 @@ class Settings(BaseSettings):
         env="SECRET_KEY"
     )
     
+    APIS_NET_PE_TOKEN: Optional[str] = Field(default=None, env="APIS_NET_PE_TOKEN")
+
     # JWT Configuration
     ACCESS_TOKEN_EXPIRE_HOURS: int = Field(default=8, env="ACCESS_TOKEN_EXPIRE_HOURS")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, env="REFRESH_TOKEN_EXPIRE_DAYS")
@@ -53,7 +55,7 @@ class Settings(BaseSettings):
     PASSWORD_REQUIRE_LOWERCASE: bool = True
     PASSWORD_REQUIRE_NUMBERS: bool = True
     PASSWORD_REQUIRE_SPECIAL: bool = False
-    
+
     # =============================================
     # CORS Y SEGURIDAD WEB
     # =============================================
