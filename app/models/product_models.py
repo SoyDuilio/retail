@@ -21,11 +21,11 @@ def get_utc_now():
 class CategoriaModel(Base):
     __tablename__ = "categorias"
     
-    id = Column(Integer, primary_key=True, index=True)
+    categoria_id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text)
-    activo = Column(Boolean, default=True, index=True)
-    created_at = Column(DateTime, default=get_utc_now)
+    activa = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(DateTime, default=get_utc_now)
     
     # Relaciones
     productos = relationship("ProductoModel", back_populates="categoria")
@@ -66,7 +66,7 @@ class ProductoModel(Base):
     codigo_producto = Column(String(20), unique=True, nullable=False, index=True)
     nombre = Column(String(200), nullable=False, index=True)
     descripcion = Column(Text)
-    categoria_id = Column(Integer, ForeignKey("categorias.id"), index=True)
+    categoria_id = Column(Integer, ForeignKey("categorias.categoria_id"), index=True)
     #unidad_medida = Column(String(50))
     precio_unitario = Column(DECIMAL(10, 2), nullable=False, default=0)
     precio_mayorista = Column(DECIMAL(10, 2))

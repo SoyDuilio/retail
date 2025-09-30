@@ -1,9 +1,9 @@
 # app/models/client_models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, func, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from decimal import Decimal
-
+import json
 from .base import Base
 
 # Función auxiliar para obtener la hora actual en UTC
@@ -18,21 +18,31 @@ class ClienteModel(Base):
     __tablename__ = "clientes"
     
     id = Column(Integer, primary_key=True, index=True)
-    ruc = Column(String(11), unique=True, nullable=False, index=True)
+    codigo_cliente = Column(String(50), unique=True, index=True)
+    nombre_comercial = Column(String(200))  # NO nombres/apellidos
     razon_social = Column(String(200))
-    nombres = Column(String(100))
-    apellidos = Column(String(100))
-    direccion = Column(Text, nullable=False)
+    ruc = Column(String(11), unique=True, nullable=False, index=True)
+    telefono = Column(String(15))
+    email = Column(String(100))
+    direccion_completa = Column(Text)  # NO solo direccion
+    referencia = Column(Text)
+    distrito = Column(String(100))
+    provincia = Column(String(100))
+    departamento = Column(String(100))
+    codigo_postal = Column(String(10))
     latitud = Column(DECIMAL(10, 8), index=True)
     longitud = Column(DECIMAL(11, 8), index=True)
+    precision_gps = Column(DECIMAL(5, 2))
     tipo_cliente_id = Column(Integer, ForeignKey("tipos_cliente.id"), nullable=False, index=True)
-    contacto_nombres = Column(String(100))
-    whatsapp = Column(String(15))
-    limite_credito = Column(DECIMAL(10, 2), default=0, index=True)
-    credito_usado = Column(DECIMAL(10, 2), default=0, index=True)
     activo = Column(Boolean, default=True, index=True)
-    created_at = Column(DateTime, default=get_utc_now)
-    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+    verificado = Column(Boolean, default=False)
+    fecha_registro = Column(DateTime, default=get_utc_now)
+    fecha_modificacion = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+    configuraciones = Column(JSON)
+    metadatos = Column(JSON)
+    
+    # Relaciones
+    tipo_cliente = relationship("TipoClienteModel", back_populates="clientes")
     
     # Relaciones
     tipo_cliente = relationship("TipoClienteModel", back_populates="clientes")
