@@ -13,11 +13,13 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
 from datetime import datetime, timedelta, timezone
+import requests
 import re
 import os
 from sqlalchemy.sql import text
 from google.cloud import speech
 from google.oauth2 import service_account
+from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -102,7 +104,7 @@ from crud.crud_client import crud_cliente
 
 # Model imports
 # Reemplazar tus importaciones actuales por:
-from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel
+from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel, CategoriaModel
 
 from contextlib import asynccontextmanager
 
@@ -226,6 +228,144 @@ manager = ConnectionManager()
 # FUNCIONES AUXILIARES  
 # =============================================
 # En main.py, cerca de tus otras funciones de ayuda
+
+@app.get("/api/utils/ruc/{ruc}")
+async def validar_ruc(ruc: str):
+    """Endpoint para validar RUC y obtener datos de la empresa"""
+    
+    print(f"\n===> Validando RUC: {ruc}")
+    
+    # Validación de formato usando función auxiliar
+    if not validar_formato_ruc(ruc):
+        print(f"!!! Error: Formato de RUC inválido: '{ruc}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Formato de RUC inválido. Debe tener 11 dígitos y comenzar con 10 o 20"
+        )
+    
+    print("===> Formato de RUC válido")
+
+    try:
+        # Consultar API externa
+        company_data = api_client.get_company(ruc=ruc)
+        print(f"===> Datos recibidos: {company_data}")
+        
+        # Procesar datos usando función auxiliar
+        processed_data = procesar_datos_empresa(company_data)
+        
+        if not processed_data:
+            print("!!! No se encontraron datos para el RUC")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="RUC no encontrado en SUNAT"
+            )
+        
+        # Agregar RUC a la respuesta
+        response_data = {"ruc": ruc, **processed_data}
+        print(f"===> Respuesta exitosa: {response_data}")
+        return response_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"!!! Excepción inesperada: {type(e).__name__} - {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Error interno al procesar la solicitud"
+        )
+
+
+@app.get("/api/utils/dni/{dni}")
+async def validar_dni(dni: str):
+    """Endpoint para validar DNI y obtener datos de la persona"""
+    
+    print(f"\n===> Validando DNI: {dni}")
+    
+    # Validación de formato usando función auxiliar
+    if not validar_formato_dni(dni):
+        print(f"!!! Error: Formato de DNI inválido: '{dni}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Formato de DNI inválido. Debe tener 8 dígitos"
+        )
+    
+    print("===> Formato de DNI válido")
+
+    try:
+        # Consultar API externa
+        person_data = api_client.get_person(dni=dni)
+        print(f"===> Datos recibidos: {person_data}")
+        
+        # Procesar datos usando función auxiliar
+        processed_data = procesar_datos_persona(person_data)
+        
+        if not processed_data:
+            print("!!! No se encontraron datos para el DNI")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="DNI no encontrado en RENIEC"
+            )
+        
+        # Agregar DNI a la respuesta
+        response_data = {"dni": dni, **processed_data}
+        print(f"===> Respuesta exitosa: {response_data}")
+        return response_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"!!! Excepción inesperada: {type(e).__name__} - {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno al procesar la solicitud"
+        )
+
+
+from typing import Dict, Any
+
+@app.post("/api/vendedor/ubicacion")
+async def guardar_ubicacion(
+    ubicacion: Dict[str, Any],
+    current_vendedor: VendedorModel = Depends(get_current_vendedor),
+    db: Session = Depends(get_db)
+):
+    """
+    Guarda la ubicación actual del vendedor.
+    Puede usarse para registro de ruta o validación de visitas.
+    """
+    try:
+        latitud = ubicacion.get('latitud')
+        longitud = ubicacion.get('longitud')
+        precision = ubicacion.get('precision')
+        timestamp = ubicacion.get('timestamp')
+        
+        print(f"📍 Ubicación vendedor {current_vendedor.vendedor_id}: {latitud}, {longitud}")
+        
+        # Si tienes una tabla de ubicaciones, guárdala aquí
+        # Ejemplo:
+        # nueva_ubicacion = UbicacionVendedorModel(
+        #     vendedor_id=current_vendedor.vendedor_id,
+        #     latitud=latitud,
+        #     longitud=longitud,
+        #     precision=precision,
+        #     timestamp=timestamp
+        # )
+        # db.add(nueva_ubicacion)
+        # db.commit()
+        
+        return DataResponse(
+            success=True,
+            message="Ubicación registrada correctamente",
+            data={
+                "latitud": latitud,
+                "longitud": longitud,
+                "timestamp": timestamp
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Error guardando ubicación: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================
 # FUNCIONES DE AYUDA PARA PROCESAMIENTO DE PEDIDOS
@@ -610,6 +750,71 @@ async def calcular_precio(
 # =============================================
 # PEDIDOS
 # =============================================
+
+@app.post("/api/pedidos/crear")
+async def crear_pedido(
+    request: Dict[str, Any],
+    current_vendedor: VendedorModel = Depends(get_current_vendedor),
+    db: Session = Depends(get_db)
+):
+    from app.models.order_models import PedidoModel, TipoVentaEnum,TipoPagoEnum, PedidoItemModel
+    """Crea un nuevo pedido"""
+    try:
+        # Generar número de pedido
+        fecha_actual = datetime.now()
+        numero_pedido = f"PED-{fecha_actual.strftime('%Y%m%d')}-{current_vendedor.vendedor_id:03d}-{int(fecha_actual.timestamp()) % 1000:03d}"
+        
+        # Crear el pedido
+        nuevo_pedido = PedidoModel(
+            numero_pedido=numero_pedido,
+            fecha=fecha_actual.date(),
+            hora=fecha_actual.time(),
+            vendedor_id=current_vendedor.vendedor_id,
+            cliente_id=request['cliente_id'],
+            tipo_venta=TipoVentaEnum.externa,  # Ajustar según tu enum
+            tipo_pago=TipoPagoEnum.credito if 'credito' in request.get('modalidad_pago', '').lower() else TipoPagoEnum.efectivo,
+            latitud_pedido=request.get('ubicacion', {}).get('latitud'),
+            longitud_pedido=request.get('ubicacion', {}).get('longitud'),
+            observaciones=request.get('observaciones', '')
+        )
+        
+        db.add(nuevo_pedido)
+        db.flush()  # Para obtener el ID
+        
+        # Agregar items del pedido
+        for item_data in request['productos']:
+            item = PedidoItemModel(
+                pedido_id=nuevo_pedido.id,
+                producto_id=item_data['producto_id'],
+                cantidad=item_data['cantidad'],
+                precio_unitario=item_data['precio_unitario'],
+                subtotal=item_data['subtotal'],
+                total=item_data['subtotal']  # Ajustar si hay descuentos
+            )
+            db.add(item)
+        
+        # Calcular totales
+        nuevo_pedido.calcular_totales()
+        
+        db.commit()
+        db.refresh(nuevo_pedido)
+        
+        return DataResponse(
+            success=True,
+            message="Pedido creado exitosamente",
+            data={
+                "numero_pedido": numero_pedido,
+                "pedido_id": str(nuevo_pedido.id),
+                "total": float(nuevo_pedido.total),
+                "estado": "pendiente"
+            }
+        )
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error creando pedido: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/pedidos", response_model=DataResponse, status_code=status.HTTP_201_CREATED)
 async def crear_pedido(
@@ -1267,65 +1472,6 @@ async def procesar_texto_google(
     )
 
 
-@app.post("/api/clientes/buscar")
-async def buscar_cliente(
-    request: BuscarClienteRequest,
-    current_vendedor: VendedorModel = Depends(get_current_vendedor),
-    db: Session = Depends(get_db)
-):
-    """Busca clientes por RUC, razón social, nombres o apellidos"""
-    try:
-        texto = request.texto.strip()
-        
-        # BÚSQUEDA ACTUALIZADA según tu ClienteModel
-        clientes_query = db.query(ClienteModel).filter(
-            and_(
-                ClienteModel.activo == True,
-                or_(
-                    ClienteModel.ruc.ilike(f"%{texto}%"),
-                    ClienteModel.razon_social.ilike(f"%{texto}%"),
-                    ClienteModel.nombres.ilike(f"%{texto}%"),
-                    ClienteModel.apellidos.ilike(f"%{texto}%"),
-                    ClienteModel.whatsapp.ilike(f"%{texto}%"),
-                    ClienteModel.contacto_nombres.ilike(f"%{texto}%")
-                )
-            )
-        ).limit(10)
-        
-        clientes = clientes_query.all()
-        
-        clientes_encontrados = []
-        for cliente in clientes:
-            # CONSTRUCCIÓN ACTUALIZADA según tu ClienteModel
-            credito_disponible = float(cliente.limite_credito - cliente.credito_usado) if cliente.limite_credito else 0
-            
-            cliente_data = ClienteEncontrado(
-                cliente_id=cliente.id,  # TU CAMPO CORRECTO
-                ruc=cliente.ruc,
-                razon_social=cliente.razon_social,
-                nombres=cliente.nombres,
-                apellidos=cliente.apellidos,
-                whatsapp=cliente.whatsapp,
-                direccion=cliente.direccion,
-                contacto_nombres=cliente.contacto_nombres,
-                limite_credito=float(cliente.limite_credito) if cliente.limite_credito else 0,
-                credito_disponible=credito_disponible
-            )
-            clientes_encontrados.append(cliente_data)
-        
-        return DataResponse[List[ClienteEncontrado]](
-            success=True,
-            message=f"Se encontraron {len(clientes_encontrados)} cliente(s)",
-            data=clientes_encontrados
-        )
-        
-    except Exception as e:
-        print(f"Error buscando cliente: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error buscando cliente: {str(e)}")
-
-
-
-
 async def identificar_productos_en_texto(db: Session, texto: str) -> List[ProductoIdentificado]:
     """
     Algoritmo para identificar productos en texto natural
@@ -1401,46 +1547,69 @@ async def buscar_clientes(
     current_vendedor: VendedorModel = Depends(get_current_vendedor),
     db: Session = Depends(get_db)
 ):
-    """Busca clientes por nombre, RUC, teléfono o razón social"""
+    """Busca clientes por RUC, nombre comercial o teléfono"""
     try:
-        from app.models.client_models import ClienteModel
+        print(f"🔍 Buscando clientes con: '{q}'")
         
-        termino = f"%{q.lower()}%"
-        
+        # Query SIN join para evitar problemas con tipos_cliente
         clientes = db.query(ClienteModel).filter(
             and_(
                 ClienteModel.activo == True,
                 or_(
-                    ClienteModel.nombre_comercial.ilike(termino),
-                    ClienteModel.razon_social.ilike(termino),
-                    ClienteModel.ruc.ilike(termino),
-                    ClienteModel.telefono.ilike(termino)
+                    ClienteModel.ruc.ilike(f"%{q}%"),
+                    ClienteModel.nombre_comercial.ilike(f"%{q}%"),
+                    ClienteModel.razon_social.ilike(f"%{q}%"),
+                    ClienteModel.telefono.ilike(f"%{q}%")
                 )
             )
         ).limit(10).all()
         
-        resultados = [
-            {
-                "cliente_id": c.cliente_id,
+        print(f"📦 Encontrados: {len(clientes)} clientes")
+        
+        resultados = []
+        for c in clientes:
+            # Manejo seguro de tipo_cliente
+            tipo_nombre = None
+            if c.tipo_cliente_id:
+                try:
+                    tipo_cliente = db.query(TipoClienteModel).filter(
+                        TipoClienteModel.id == c.tipo_cliente_id
+                    ).first()
+                    tipo_nombre = tipo_cliente.nombre if tipo_cliente else "Sin tipo"
+                except Exception as e:
+                    print(f"Error obteniendo tipo_cliente: {e}")
+                    tipo_nombre = "Sin tipo"
+            
+            resultados.append({
+                "id": c.id,
                 "codigo_cliente": c.codigo_cliente,
                 "nombre_comercial": c.nombre_comercial,
                 "razon_social": c.razon_social,
                 "ruc": c.ruc,
                 "telefono": c.telefono,
                 "distrito": c.distrito,
-                "tipo_cliente": c.tipo_cliente
-            }
-            for c in clientes
-        ]
+                "provincia": c.provincia,
+                "departamento": c.departamento,
+                "latitud": float(c.latitud) if c.latitud else None,
+                "longitud": float(c.longitud) if c.longitud else None,
+                "tipo_cliente_id": c.tipo_cliente_id,
+                "tipo_cliente": {
+                    "id": c.tipo_cliente_id,
+                    "nombre": tipo_nombre or "Sin tipo"
+                }
+            })
         
-        return DataResponse[List](
+        return DataResponse(
             success=True,
             message=f"Encontrados {len(resultados)} clientes",
             data=resultados
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Error en búsqueda de clientes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error en búsqueda: {str(e)}")
 
 class BuscarClienteVozRequest(BaseModel):
     texto: str
@@ -1453,41 +1622,54 @@ async def buscar_productos(
     current_vendedor: VendedorModel = Depends(get_current_vendedor),
     db: Session = Depends(get_db)
 ):
-    """Endpoint para búsqueda de productos por nombre"""
+    """Endpoint para búsqueda de productos por nombre o código"""
     try:
-        # BÚSQUEDA ACTUALIZADA
+        print(f"🔍 Buscando productos con: '{q}'")
+        
+        # Query sin join con categoría
         productos = db.query(ProductoModel).filter(
             and_(
                 ProductoModel.activo == True,
                 or_(
                     ProductoModel.nombre.ilike(f"%{q}%"),
-                    ProductoModel.descripcion.ilike(f"%{q}%"),
                     ProductoModel.codigo_producto.ilike(f"%{q}%")
                 )
             )
         ).limit(20).all()
         
+        print(f"📦 Encontrados: {len(productos)} productos")
+        
         productos_data = []
         for producto in productos:
-            # CAMPOS ACTUALIZADOS
+            # Manejo seguro de categoría
+            categoria_nombre = None
+            if producto.categoria_id:
+                try:
+                    categoria = db.query(CategoriaModel).filter(
+                        CategoriaModel.categoria_id == producto.categoria_id
+                    ).first()
+                    categoria_nombre = categoria.nombre if categoria else None
+                except Exception as e:
+                    print(f"Error obteniendo categoría: {e}")
+            
             productos_data.append({
-                "producto_id": producto.id,  # TU CAMPO CORRECTO
+                "id": producto.id,
+                "codigo_producto": producto.codigo_producto,
                 "nombre": producto.nombre,
-                "descripcion": producto.descripcion,
-                "codigo": producto.codigo,
-                "precio_venta": float(producto.precio_base),  # TU CAMPO CORRECTO
-                "stock": producto.stock_actual,  # TU CAMPO CORRECTO
-                "categoria": producto.categoria.nombre if producto.categoria else None,
-                "unidad_medida": producto.unidad_medida.nombre if producto.unidad_medida else None
+                "precio_unitario": float(producto.precio_unitario),
+                "categoria": categoria_nombre
             })
         
-        return DataResponse[List](
+        return DataResponse(
             success=True,
             message=f"Se encontraron {len(productos_data)} producto(s)",
             data=productos_data
         )
         
     except Exception as e:
+        print(f"❌ Error en búsqueda de productos: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
