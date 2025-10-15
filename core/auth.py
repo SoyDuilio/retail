@@ -381,13 +381,7 @@ async def get_current_evaluador(
 ) -> EvaluadorModel:
     """Dependency para obtener evaluador actual"""
     
-    print(f"=== DEBUG get_current_evaluador ===")
-    print(f"current_user: {current_user}")
-    print(f"tipo_usuario: {current_user.get('tipo_usuario')}")
-    print(f"user_id: {current_user.get('user_id')}")
-    
     if current_user["tipo_usuario"] != "evaluador":
-        print(f"❌ Tipo de usuario incorrecto: {current_user['tipo_usuario']}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso solo permitido para evaluadores"
@@ -398,18 +392,11 @@ async def get_current_evaluador(
         EvaluadorModel.activo == True
     ).first()
     
-    print(f"Consulta SQL: SELECT * FROM evaluadores WHERE evaluador_id = {current_user['user_id']} AND activo = True")
-    print(f"Evaluador encontrado: {evaluador}")
-    
     if not evaluador:
-        print("❌ Evaluador no encontrado en la base de datos")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Evaluador no encontrado"
         )
-    
-    print(f"✅ Evaluador: ID={evaluador.evaluador_id}, Nombre={evaluador.nombre} {evaluador.apellidos}")  # ✅ CORREGIDO
-    print(f"===================================")
     
     return evaluador
 
