@@ -1,15 +1,16 @@
 # app/models/user_models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, ForeignKey, JSON, DECIMAL
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from passlib.context import CryptContext
-
+from .base import Base
 # Remover la importación de werkzeug
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-Base = declarative_base()
+#Base = declarative_base()
 
 # Función auxiliar para obtener la hora actual en UTC
 def get_utc_now():
@@ -61,6 +62,8 @@ class VendedorModel(Base):
     
     # Relaciones
     sesiones = relationship("SesionActivaModel", back_populates="vendedor", cascade="all, delete-orphan")
+    # Relación inversa
+    pedidos = relationship("PedidoModel", back_populates="vendedor")
     
     def set_password(self, password: str):
         """Establece la contraseña hasheada"""
@@ -91,55 +94,68 @@ class VendedorModel(Base):
 class EvaluadorModel(Base):
     __tablename__ = "evaluadores"
     
-    # IDs y referencias
-    evaluador_id = Column(Integer, primary_key=True, index=True)
-    dni = Column(String(8), unique=True, index=True, nullable=False)
-    codigo_evaluador = Column(String(10), unique=True, index=True, nullable=False)
-    
-    # Información personal
+    evaluador_id = Column(Integer, primary_key=True, autoincrement=True)
+    dni = Column(String(8), unique=True, nullable=False, index=True)
+    codigo_evaluador = Column(String(10), unique=True, nullable=False)
     nombre = Column(String(100), nullable=False)
     apellidos = Column(String(150), nullable=False)
-    telefono = Column(String(15), nullable=False)
-    email = Column(String(150), unique=True, index=True)
+    telefono = Column(String(15))
+    email = Column(String(150))
+    direccion_trabajo = Column(String)
     
-    # Ubicación de trabajo
-    direccion_trabajo = Column(Text)
+    # Zonas asignadas (departamento/provincia/distrito)
     distrito_asignado = Column(String(100))
     provincia_asignada = Column(String(100))
     departamento_asignado = Column(String(100))
+    areas_evaluacion = Column(JSONB, default=list)  # Array de zonas/rutas
     
-    # Credenciales y autenticación
+    # Autenticación
     password_hash = Column(String(255), nullable=False)
-    token_fcm = Column(String(255))
+    token_fcm = Column(String(255))  # Para notificaciones push
     
-    # Estado y control
+    # Estado
     activo = Column(Boolean, default=True)
     verificado = Column(Boolean, default=False)
-    fecha_registro = Column(DateTime, default=get_utc_now)
+    limite_aprobacion = Column(DECIMAL(12, 2), default=5000.00)  # Nuevo campo
+    
+    # Tracking
+    fecha_registro = Column(DateTime, default=datetime.utcnow)
     ultima_conexion = Column(DateTime)
     
-    # Geolocalización actual
+    # GPS
     latitud_actual = Column(Float)
     longitud_actual = Column(Float)
     precision_gps = Column(Float)
     ultima_ubicacion = Column(DateTime)
     
-    # Configuraciones específicas
-    configuraciones = Column(JSON, default={})
-    areas_evaluacion = Column(JSON, default=[])  # Zonas que puede evaluar
+    # Configuraciones personalizadas
+    configuraciones = Column(JSONB, default=dict)
     
     # Relaciones
-    sesiones = relationship("SesionActivaModel", back_populates="evaluador", cascade="all, delete-orphan")
+    evaluaciones = relationship("EvaluacionPedidoModel", back_populates="evaluador")
+    sesiones = relationship("SesionActivaModel", back_populates="evaluador")
     
     def set_password(self, password: str):
+        """Hashea y guarda contraseña"""
         self.password_hash = pwd_context.hash(password)
-
+    
     def check_password(self, password: str) -> bool:
+        """Verifica contraseña"""
         return pwd_context.verify(password, self.password_hash)
     
-    @property
-    def nombre_completo(self) -> str:
-        return f"{self.nombre} {self.apellidos}"
+    def puede_aprobar_monto(self, monto: float) -> bool:
+        """Verifica si puede aprobar un monto específico"""
+        return monto <= float(self.limite_aprobacion)
+    
+    def esta_en_zona(self, departamento: str, provincia: str = None, distrito: str = None) -> bool:
+        """Verifica si una ubicación está en su zona asignada"""
+        if self.departamento_asignado and self.departamento_asignado != departamento:
+            return False
+        if provincia and self.provincia_asignada and self.provincia_asignada != provincia:
+            return False
+        if distrito and self.distrito_asignado and self.distrito_asignado != distrito:
+            return False
+        return True
 
 # =============================================
 # MODELO SUPERVISOR

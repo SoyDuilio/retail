@@ -1,5 +1,5 @@
 # app/models/client_models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, func, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, func, JSON, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -40,6 +40,11 @@ class ClienteModel(Base):
     fecha_modificacion = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
     configuraciones = Column(JSON)
     metadatos = Column(JSON)
+    # Campos de control de crédito
+    es_moroso = Column(Boolean, default=False)
+    deuda_actual = Column(DECIMAL(12, 2), default=0)
+    ultima_fecha_pago = Column(Date)
+    dias_mora = Column(Integer, default=0)
     
     # Relaciones
     tipo_cliente = relationship("TipoClienteModel", back_populates="clientes")
@@ -50,6 +55,8 @@ class ClienteModel(Base):
     #conversaciones_voz = relationship("ConversacionVozModel", back_populates="cliente")
     historial_credito = relationship("HistorialCreditoModel", back_populates="cliente", order_by="HistorialCreditoModel.created_at.desc()")
     contactos = relationship("ContactoClienteModel", back_populates="cliente", order_by="ContactoClienteModel.created_at.desc()")
+
+    pedidos = relationship("PedidoModel", back_populates="cliente")
     
     @property
     def nombre_completo(self):

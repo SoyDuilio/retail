@@ -41,36 +41,40 @@ class TipoPagoEnum(enum.Enum):
 class PedidoModel(Base):
     __tablename__ = "pedidos"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     numero_pedido = Column(String(20), unique=True, nullable=False, index=True)
     fecha = Column(Date, nullable=False, index=True)
     hora = Column(Time, nullable=False)
     vendedor_id = Column(Integer, ForeignKey("vendedores.vendedor_id"), nullable=False, index=True)
-    cliente_id = Column(Integer, ForeignKey("clientes.cliente_id"), nullable=False, index=True)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False, index=True)
     tipo_venta = Column(SQLEnum(TipoVentaEnum), nullable=False, index=True)
     tipo_pago = Column(SQLEnum(TipoPagoEnum), default=TipoPagoEnum.CREDITO, index=True)
+    metodo_pago = Column(String(50), nullable=False, default='credito')
     latitud_pedido = Column(DECIMAL(10, 8))
     longitud_pedido = Column(DECIMAL(11, 8))
     subtotal = Column(DECIMAL(12, 2), default=0)
     descuento_total = Column(DECIMAL(12, 2), default=0)
     total = Column(DECIMAL(12, 2), default=0, index=True)
+    monto_total = Column(DECIMAL(12, 2), nullable=False, default=0)
     observaciones = Column(Text)
-    created_at = Column(DateTime, default=get_utc_now, index=True)
-    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    #fecha_actualizacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
     
     # Relaciones
-    vendedor = relationship("app.models.user_models.VendedorModel", back_populates="pedidos")
+    vendedor = relationship("VendedorModel", back_populates="pedidos")
     cliente = relationship("ClienteModel", back_populates="pedidos")
     items = relationship("PedidoItemModel", back_populates="pedido", cascade="all, delete-orphan")
-    calificacion = relationship("CalificacionModel", back_populates="pedido", uselist=False, cascade="all, delete-orphan")
-    auditoria = relationship("AuditoriaPedidoModel", back_populates="pedido", order_by="AuditoriaPedidoModel.timestamp.desc()")
+    calificacion = relationship("CalificacionModel", back_populates="pedido", uselist=False, cascade="all, delete-orphan")    
+    auditoria = relationship("AuditoriaPedidoModel", back_populates="pedido")
+    estado = Column(String(20), default="pendiente", index=True)
+    evaluacion = relationship("EvaluacionPedidoModel", back_populates="pedido", uselist=False)
     
-    @property
-    def estado(self):
-        """Estado actual del pedido"""
-        if self.calificacion:
-            return self.calificacion.estado.value
-        return "pendiente"
+    #@property
+    #def estado(self):
+    #    """Estado actual del pedido"""
+    #    if self.calificacion:
+    #        return self.calificacion.estado.value
+    #    return "pendiente"
     
     @property
     def tiempo_transcurrido(self):
@@ -150,14 +154,15 @@ class PedidoItemModel(Base):
     __tablename__ = "pedido_items"
     
     id = Column(Integer, primary_key=True, index=True)
-    pedido_id = Column(UUID(as_uuid=True), ForeignKey("pedidos.id", ondelete="CASCADE"), nullable=False, index=True)
-    producto_id = Column(Integer, ForeignKey("productos.producto_id"), nullable=False, index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id", ondelete="CASCADE"), nullable=False, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False, index=True)
+    unidad_medida_venta = Column(String(50), nullable=False, default="UND")
     cantidad = Column(Integer, nullable=False)
-    precio_unitario = Column(DECIMAL(10, 2), nullable=False)
-    descuento_aplicado = Column(DECIMAL(5, 2), default=0)  # Porcentaje
+    precio_unitario_venta = Column(DECIMAL(10, 2), nullable=False)
+    #descuento_aplicado = Column(DECIMAL(5, 2), default=0)  # Porcentaje
     subtotal = Column(DECIMAL(12, 2), nullable=False)
-    total = Column(DECIMAL(12, 2), nullable=False)
-    created_at = Column(DateTime, default=get_utc_now)
+    #total = Column(DECIMAL(12, 2), nullable=False)
+    #created_at = Column(DateTime, default=get_utc_now)
     
     # Relaciones
     pedido = relationship("PedidoModel", back_populates="items")
@@ -214,6 +219,31 @@ class AuditoriaPedidoModel(Base):
     timestamp = Column(DateTime, default=get_utc_now, index=True)
     
     # Agregar esta línea:
-    #pedido = relationship("PedidoModel", back_populates="auditoria")
+    pedido = relationship("PedidoModel", back_populates="auditoria")
 
 #   valores_
+
+class EvaluacionPedidoModel(Base):
+    __tablename__ = "evaluaciones_pedido"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=False)
+    evaluador_id = Column(Integer, ForeignKey("evaluadores.evaluador_id"), nullable=False)
+    
+    # Validaciones automáticas
+    vendedor_activo = Column(Boolean)
+    cliente_en_zona = Column(Boolean)
+    monto_dentro_limite = Column(Boolean)
+    cliente_no_moroso = Column(Boolean)
+    
+    # Resultado
+    resultado = Column(String(20), nullable=False)  # 'aprobado', 'rechazado', 'pendiente'
+    motivo_rechazo = Column(Text)
+    observaciones = Column(Text)
+    
+    # Auditoría
+    fecha_evaluacion = Column(DateTime, default=get_utc_now)
+    
+    # Relaciones
+    pedido = relationship("PedidoModel", back_populates="evaluacion")
+    evaluador = relationship("EvaluadorModel", back_populates="evaluaciones")
