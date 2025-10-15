@@ -2587,4 +2587,11 @@ async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
+
+@app.get("/guia", response_class=HTMLResponse)
+async def guia(request: Request, evaluador_id: int):
+    return templates.TemplateResponse("guia2.html", {"request": request})
