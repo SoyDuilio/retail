@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Integración VFP → FastAPI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            color: #2a5298;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        h3 {
+            color: #1e3c72;
+            font-size: 1.4em;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .note strong {
+            color: #856404;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .warning strong {
+            color: #721c24;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .success strong {
+            color: #155724;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .endpoint {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .endpoint code {
+            background: #1976D2;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 Guía de Integración VFP → FastAPI</h1>
+            <p>Consumo de API REST desde Visual FoxPro 9.0</p>
+        </header>
+        
+        <div class="content">
+            <div class="section">
+                <h2>📋 Índice de Contenidos</h2>
+                <ol>
+                    <li><a href="#introduccion">Introducción y Requisitos</a></li>
+                    <li><a href="#configuracion">Configuración Inicial en VFP</a></li>
+                    <li><a href="#clase-base">Clase Base para HTTP</a></li>
+                    <li><a href="#ejemplos">Ejemplos Prácticos por Endpoint</a></li>
+                    <li><a href="#manejo-errores">Manejo de Errores</a></li>
+                    <li><a href="#casos-uso">Casos de Uso Completos</a></li>
+                </ol>
+            </div>
+
+            <div class="section" id="introduccion">
+                <h2>1. Introducción y Requisitos</h2>
+                
+                <h3>¿Qué vamos a lograr?</h3>
+                <p>Integrar Visual FoxPro 9.0 con la API FastAPI para gestionar productos, pedidos y clientes mediante llamadas HTTP REST.</p>
+                
+                <h3>Requisitos Previos</h3>
+                <ul style="margin-left: 30px; margin-top: 10px;">
+                    <li>Visual FoxPro 9.0 (con Service Pack 2 recomendado)</li>
+                    <li>API FastAPI funcionando en http://localhost:8000</li>
+                    <li>Conocimientos básicos de programación orientada a objetos en VFP</li>
+                </ul>
+                
+                <div class="note">
+                    <strong>💡 Nota:</strong> Esta guía usa MSXML2.ServerXMLHTTP.6.0 para las peticiones HTTP, que es nativo de Windows y no requiere instalación adicional.
+                </div>
+            </div>
+
+            <div class="section" id="configuracion">
+                <h2>2. Configuración Inicial en VFP</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Crear la estructura de archivos</strong>
+                </div>
+                
+                <pre><code>TU_PROYECTO/
+│
+├── CLASES/
+│   ├── HttpClient.prg      && Clase base para HTTP
+│   └── ApiService.prg      && Servicio de API
+│
+├── FORMS/
+│   ├── FrmProductos.scx
+│   └── FrmPedidos.scx
+│
+└── CONFIG/
+    └── config.prg          && Configuración general</code></pre>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Crear archivo de configuración (config.prg)</strong>
+                </div>
+                
+                <pre><code>* config.prg - Configuración de la API
+DEFINE CLASS ApiConfig AS Custom
+    API_BASE_URL = "http://localhost:8000"
+    API_TIMEOUT = 30  && segundos
+    
+    FUNCTION GetEndpoint(tcEndpoint)
+        RETURN THIS.API_BASE_URL + tcEndpoint
+    ENDFUNC
+ENDDEFINE</code></pre>
+            </div>
+
+            <div class="section" id="clase-base">
+                <h2>3. Clase Base para HTTP (HttpClient.prg)</h2>
+                
+                <p>Esta es la clase fundamental que maneja todas las peticiones HTTP:</p>
+                
+                <pre><code>* HttpClient.prg - Clase base para peticiones HTTP
+DEFINE CLASS HttpClient AS Custom
+    oHTTP = .NULL.
+    cBaseURL = "http://localhost:8000"
+    nTimeout = 30
+    cLastError = ""
+    
+    FUNCTION Init()
+        TRY
+            THIS.oHTTP = CREATEOBJECT("MSXML2.ServerXMLHTTP.6.0")
+            RETURN .T.
+        CATCH TO oEx
+            THIS.cLastError = "Error al crear objeto HTTP: " + oEx.Message
+            RETURN .F.
+        ENDTRY
+    ENDFUNC
+    
+    * Método GET
+    FUNCTION HttpGet(tcEndpoint, tcParams)
+        LOCAL lcURL, lcResponse, lnStatus
+        
+        lcURL = THIS.cBaseURL + tcEndpoint
+        
+        * Agregar parámetros si existen
+        IF !EMPTY(tcParams)
+            lcURL = lcURL + "?" + tcParams
+        ENDIF
+        
+        TRY
+            THIS.oHTTP.Open("GET", lcURL, .F.)
+            THIS.oHTTP.setRequestHeader("Content-Type", "application/json")
+            THIS.oHTTP.setTimeouts(THIS.nTimeout * 1000, THIS.nTimeout * 1000, ;
+                                   THIS.nTimeout * 1000, THIS.nTimeout * 1000)
+            
+            THIS.oHTTP.Send()
+            
+            lnStatus = THIS.oHTTP.Status
+            lcResponse = THIS.oHTTP.responseText
+            
+            IF lnStatus = 200
+                RETURN THIS.ParseJSON(lcResponse)
+            ELSE
+                THIS.cLastError = "HTTP " + TRANSFORM(lnStatus) + ": " + lcResponse
+                RETURN .NULL.
+            ENDIF
+            
+        CATCH TO oEx
+            THIS.cLastError = "Error en GET: " + oEx.Message
+            RETURN .NULL.
+        ENDTRY
+    ENDFUNC
+    
+    * Método POST
+    FUNCTION HttpPost(tcEndpoint, tcJsonData)
+        LOCAL lcURL, lcResponse, lnStatus
+        
+        lcURL = THIS.cBaseURL + tcEndpoint
+        
+        TRY
+            THIS.oHTTP.Open("POST", lcURL, .F.)
+            THIS.oHTTP.setRequestHeader("Content-Type", "application/json")
+            THIS.oHTTP.setTimeouts(THIS.nTimeout * 1000, THIS.nTimeout * 1000, ;
+                                   THIS.nTimeout * 1000, THIS.nTimeout * 1000)
+            
+            THIS.oHTTP.Send(tcJsonData)
+            
+            lnStatus = THIS.oHTTP.Status
+            lcResponse = THIS.oHTTP.responseText
+            
+            IF lnStatus >= 200 AND lnStatus < 300
+                RETURN THIS.ParseJSON(lcResponse)
+            ELSE
+                THIS.cLastError = "HTTP " + TRANSFORM(lnStatus) + ": " + lcResponse
+                RETURN .NULL.
+            ENDIF
+            
+        CATCH TO oEx
+            THIS.cLastError = "Error en POST: " + oEx.Message
+            RETURN .NULL.
+        ENDTRY
+    ENDFUNC
+    
+    * Método PUT
+    FUNCTION HttpPut(tcEndpoint, tcJsonData)
+        LOCAL lcURL, lcResponse, lnStatus
+        
+        lcURL = THIS.cBaseURL + tcEndpoint
+        
+        TRY
+            THIS.oHTTP.Open("PUT", lcURL, .F.)
+            THIS.oHTTP.setRequestHeader("Content-Type", "application/json")
+            THIS.oHTTP.setTimeouts(THIS.nTimeout * 1000, THIS.nTimeout * 1000, ;
+                                   THIS.nTimeout * 1000, THIS.nTimeout * 1000)
+            
+            THIS.oHTTP.Send(tcJsonData)
+            
+            lnStatus = THIS.oHTTP.Status
+            lcResponse = THIS.oHTTP.responseText
+            
+            IF lnStatus >= 200 AND lnStatus < 300
+                RETURN THIS.ParseJSON(lcResponse)
+            ELSE
+                THIS.cLastError = "HTTP " + TRANSFORM(lnStatus) + ": " + lcResponse
+                RETURN .NULL.
+            ENDIF
+            
+        CATCH TO oEx
+            THIS.cLastError = "Error en PUT: " + oEx.Message
+            RETURN .NULL.
+        ENDTRY
+    ENDFUNC
+    
+    * Método DELETE
+    FUNCTION HttpDelete(tcEndpoint)
+        LOCAL lcURL, lcResponse, lnStatus
+        
+        lcURL = THIS.cBaseURL + tcEndpoint
+        
+        TRY
+            THIS.oHTTP.Open("DELETE", lcURL, .F.)
+            THIS.oHTTP.setRequestHeader("Content-Type", "application/json")
+            THIS.oHTTP.setTimeouts(THIS.nTimeout * 1000, THIS.nTimeout * 1000, ;
+                                   THIS.nTimeout * 1000, THIS.nTimeout * 1000)
+            
+            THIS.oHTTP.Send()
+            
+            lnStatus = THIS.oHTTP.Status
+            lcResponse = THIS.oHTTP.responseText
+            
+            IF lnStatus >= 200 AND lnStatus < 300
+                RETURN .T.
+            ELSE
+                THIS.cLastError = "HTTP " + TRANSFORM(lnStatus) + ": " + lcResponse
+                RETURN .F.
+            ENDIF
+            
+        CATCH TO oEx
+            THIS.cLastError = "Error en DELETE: " + oEx.Message
+            RETURN .F.
+        ENDTRY
+    ENDFUNC
+    
+    * Parsear JSON a objeto VFP
+    FUNCTION ParseJSON(tcJSON)
+        LOCAL loJSON, loResult
+        
+        TRY
+            * Usar nfJsonRead de VFPX o implementación propia
+            * Aquí un ejemplo simple (requiere biblioteca JSON)
+            loResult = EVALUATE(tcJSON)  && Simplificado
+            RETURN loResult
+        CATCH TO oEx
+            THIS.cLastError = "Error al parsear JSON: " + oEx.Message
+            RETURN .NULL.
+        ENDTRY
+    ENDFUNC
+    
+    * Convertir objeto VFP a JSON
+    FUNCTION ToJSON(toObject)
+        * Implementación simplificada - usar biblioteca JSON real
+        LOCAL lcJSON
+        lcJSON = "{"
+        * Aquí iría la lógica de conversión
+        * Se recomienda usar bibliotecas como nfJson de VFPX
+        lcJSON = lcJSON + "}"
+        RETURN lcJSON
+    ENDFUNC
+    
+    FUNCTION Destroy()
+        THIS.oHTTP = .NULL.
+    ENDFUNC
+ENDDEFINE</code></pre>
+
+                <div class="warning">
+                    <strong>⚠️ Importante:</strong> VFP no tiene soporte nativo completo de JSON. Se recomienda usar la biblioteca <strong>nfJson</strong> de VFPX para un manejo robusto de JSON. Descárgala de: <a href="https://github.com/VFPX/nfJson" target="_blank">https://github.com/VFPX/nfJson</a>
+                </div>
+            </div>
+
+            <div class="section" id="ejemplos">
+                <h2>4. Ejemplos Prácticos por Endpoint</h2>
+                
+                <h3>4.1 Listar Productos (GET /productos/)</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>GET /productos/</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Listar todos los productos
+LOCAL oAPI, oResultado, i
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+* Listar productos activos
+oResultado = oAPI.HttpGet("/productos/", "activo=true&skip=0&limit=100")
+
+IF !ISNULL(oResultado)
+    * Recorrer productos
+    FOR i = 1 TO ALEN(oResultado.productos)
+        ? "Código:", oResultado.productos[i].codigo_producto
+        ? "Nombre:", oResultado.productos[i].nombre
+        ? "Precio:", oResultado.productos[i].precio_unitario
+        ? "Stock:", oResultado.productos[i].stock_actual
+        ? "---"
+    ENDFOR
+    
+    ? "Total de productos:", oResultado.total
+ELSE
+    MESSAGEBOX("Error: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.2 Buscar Producto por Código (GET /productos/{codigo_producto})</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>GET /productos/{codigo_producto}</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Buscar producto específico
+LOCAL oAPI, oProducto, lcCodigo
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+lcCodigo = "PROD001"
+oProducto = oAPI.HttpGet("/productos/" + lcCodigo, "")
+
+IF !ISNULL(oProducto)
+    ? "Producto encontrado:"
+    ? "Código:", oProducto.codigo_producto
+    ? "Nombre:", oProducto.nombre
+    ? "Descripción:", oProducto.descripcion
+    ? "Precio:", oProducto.precio_unitario
+    ? "Stock:", oProducto.stock_actual
+    ? "Estado:", oProducto.estado_stock
+ELSE
+    MESSAGEBOX("Producto no encontrado o error: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.3 Crear Nuevo Producto (POST /productos/)</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>POST /productos/</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Crear nuevo producto
+LOCAL oAPI, lcJSON, oResultado
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+* Construir JSON manualmente (o usar biblioteca nfJson)
+TEXT TO lcJSON NOSHOW TEXTMERGE
+{
+    "codigo_producto": "PROD100",
+    "nombre": "Producto Nuevo desde VFP",
+    "descripcion": "Descripción del producto creado desde Visual FoxPro",
+    "categoria_id": 1,
+    "precio_unitario": 150.00,
+    "precio_mayorista": 135.00,
+    "precio_distribuidor": 120.00,
+    "activo": true
+}
+ENDTEXT
+
+oResultado = oAPI.HttpPost("/productos/", lcJSON)
+
+IF !ISNULL(oResultado)
+    MESSAGEBOX("Producto creado exitosamente" + CHR(13) + ;
+               "ID: " + TRANSFORM(oResultado.id) + CHR(13) + ;
+               "Código: " + oResultado.codigo_producto, 64, "Éxito")
+ELSE
+    MESSAGEBOX("Error al crear producto: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.4 Actualizar Producto (PUT /productos/{producto_id})</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>PUT /productos/{producto_id}</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Actualizar producto existente
+LOCAL oAPI, lcJSON, oResultado, lnProductoID
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+lnProductoID = 5  && ID del producto a actualizar
+
+TEXT TO lcJSON NOSHOW TEXTMERGE
+{
+    "nombre": "Producto Actualizado",
+    "precio_unitario": 175.50,
+    "precio_mayorista": 158.00,
+    "activo": true
+}
+ENDTEXT
+
+oResultado = oAPI.HttpPut("/productos/" + TRANSFORM(lnProductoID), lcJSON)
+
+IF !ISNULL(oResultado)
+    MESSAGEBOX("Producto actualizado correctamente", 64, "Éxito")
+ELSE
+    MESSAGEBOX("Error al actualizar: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.5 Eliminar Producto (DELETE /productos/{producto_id})</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>DELETE /productos/{producto_id}</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Eliminar producto
+LOCAL oAPI, llResultado, lnProductoID
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+lnProductoID = 10
+
+IF MESSAGEBOX("¿Está seguro de eliminar el producto?", 4+32, "Confirmar") = 6
+    llResultado = oAPI.HttpDelete("/productos/" + TRANSFORM(lnProductoID))
+    
+    IF llResultado
+        MESSAGEBOX("Producto eliminado exitosamente", 64, "Éxito")
+    ELSE
+        MESSAGEBOX("Error al eliminar: " + oAPI.cLastError, 16, "Error")
+    ENDIF
+ENDIF</code></pre>
+
+                <h3>4.6 Crear Pedido (POST /pedidos/)</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>POST /pedidos/</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Crear nuevo pedido con items
+LOCAL oAPI, lcJSON, oResultado
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+TEXT TO lcJSON NOSHOW TEXTMERGE
+{
+    "cliente_id": 1,
+    "tipo_cliente_id": 1,
+    "fecha_pedido": "2024-10-15T10:30:00",
+    "observaciones": "Pedido urgente desde VFP",
+    "items": [
+        {
+            "producto_id": 1,
+            "cantidad": 10,
+            "precio_unitario": 150.00
+        },
+        {
+            "producto_id": 2,
+            "cantidad": 5,
+            "precio_unitario": 200.00
+        }
+    ]
+}
+ENDTEXT
+
+oResultado = oAPI.HttpPost("/pedidos/", lcJSON)
+
+IF !ISNULL(oResultado)
+    MESSAGEBOX("Pedido creado" + CHR(13) + ;
+               "Número: " + oResultado.numero_pedido + CHR(13) + ;
+               "Total: $" + TRANSFORM(oResultado.total, "999,999.99"), 64, "Éxito")
+ELSE
+    MESSAGEBOX("Error: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.7 Buscar Pedidos con Filtros (GET /pedidos/)</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>GET /pedidos/</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Buscar pedidos con filtros
+LOCAL oAPI, oResultado, i, lcParams
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+* Construir parámetros de búsqueda
+lcParams = "cliente_id=1" + ;
+           "&fecha_desde=2024-10-01" + ;
+           "&fecha_hasta=2024-10-31" + ;
+           "&estado=PENDIENTE" + ;
+           "&skip=0&limit=50"
+
+oResultado = oAPI.HttpGet("/pedidos/", lcParams)
+
+IF !ISNULL(oResultado)
+    ? "Total de pedidos encontrados:", oResultado.total
+    
+    FOR i = 1 TO ALEN(oResultado.pedidos)
+        ? "Pedido:", oResultado.pedidos[i].numero_pedido
+        ? "Fecha:", oResultado.pedidos[i].fecha_pedido
+        ? "Estado:", oResultado.pedidos[i].estado
+        ? "Total: $", oResultado.pedidos[i].total
+        ? "---"
+    ENDFOR
+ELSE
+    MESSAGEBOX("Error: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+
+                <h3>4.8 Obtener Detalles de Pedido (GET /pedidos/{pedido_id})</h3>
+                
+                <div class="endpoint">
+                    <strong>Endpoint:</strong> <code>GET /pedidos/{pedido_id}</code>
+                </div>
+                
+                <pre><code>* Ejemplo: Ver detalles completos de un pedido
+LOCAL oAPI, oPedido, i
+
+oAPI = CREATEOBJECT("HttpClient")
+oAPI.cBaseURL = "http://localhost:8000"
+
+lnPedidoID = 1
+oPedido = oAPI.HttpGet("/pedidos/" + TRANSFORM(lnPedidoID), "")
+
+IF !ISNULL(oPedido)
+    ? "DETALLES DEL PEDIDO"
+    ? "===================="
+    ? "Número:", oPedido.numero_pedido
+    ? "Cliente:", oPedido.cliente.nombre
+    ? "Fecha:", oPedido.fecha_pedido
+    ? "Estado:", oPedido.estado
+    ? ""
+    ? "ITEMS:"
+    
+    FOR i = 1 TO ALEN(oPedido.items)
+        ? "  -", oPedido.items[i].producto.nombre
+        ? "   Cantidad:", oPedido.items[i].cantidad
+        ? "   Precio:", oPedido.items[i].precio_unitario
+        ? "   Subtotal:", oPedido.items[i].subtotal
+    ENDFOR
+    
+    ? ""
+    ? "TOTAL: $", oPedido.total
+ELSE
+    MESSAGEBOX("Error: " + oAPI.cLastError, 16, "Error")
+ENDIF</code></pre>
+            </div>
+
+            <div class="section" id="manejo-errores">
+                <h2>5. Manejo de Errores</h2>
+                
+                <h3>5.1 Estructura de Manejo de Errores</h3>
+                
+                <pre><code>* Función auxiliar para manejo consistente de errores
+FUNCTION ProcesarRespuestaAPI(toResultado, toAPI)
+    IF ISNULL(toResultado)
+        * Error en la llamada
+        LOCAL lcMensaje
+        lcMensaje = "Error en la operación:" + CHR(13) + CHR(13) + ;
+                    toAPI.cLastError + CHR(13) + CHR(13) + ;
+                    "Verifique:" + CHR(13) + ;
+                    "- Que la API esté ejecutándose" + CHR(13) + ;
+                    "- La URL de conexión" + CHR(13) + ;
+                    "- Su conexión de red"
+        
+        MESSAGEBOX(lcMensaje, 16, "Error de Conexión")
+        RETURN .F.
+    ENDIF
+    
+    RETURN .T.
+ENDFUNC
+
+* Ejemplo de uso:
+LOCAL oAPI, oResultado
+
+oAPI = CREATEOBJECT("HttpClient")
+oResultado = oAPI.HttpGet("/productos/", "")
+
+IF !ProcesarRespuestaAPI(oResultado, oAPI)
+    * Manejar el error apropiadamente
+    RETURN
+ENDIF
+
+* Continuar con el procesamiento normal...</code></pre>
+
+                <h3>5.2 Códigos de Estado HTTP Comunes</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Significado</th>
+                            <th>Acción Recomendada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>200</td>
+                            <td>OK - Éxito</td>
+                            <td>Procesar respuesta normalmente</td>
+                        </tr>
+                        <tr>
+                            <td>201</td>
+                            <td>Created - Recurso creado</td>
+                            <td>Confirmar creación exitosa</td>
+                        </tr>
+                        <tr>
+                            <td>400</td>
+                            <td>Bad Request - Datos inválidos</td>
+                            <td>Verificar datos enviados</td>
+                        </tr>
+                        <tr>
+                            <td>404</td>
+                            <td>Not Found - No encontrado</td>
+                            <td>Verificar ID o código</td>
+                        </tr>
+                        <tr>
+                            <td>422</td>
+                            <td>Validation Error - Error de validación</td>
+                            <td>Revisar campos obligatorios</td>
+                        </tr>
+                        <tr>
+                            <td>500</td>
+                            <td>Internal Server Error - Error del servidor</td>
+                            <td>Contactar soporte técnico</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section" id="casos-uso">
+                <h2>6. Casos de Uso Completos</h2>
+                
+                <h3>6.1 Formulario de Productos</h3>
+                
+                <pre><code>* FrmProductos - Formulario para gestión de productos
+* Ejemplo de un formulario completo
+
+DEFINE CLASS FrmProductos AS Form
+    Caption = "Gestión de Productos"
+    Height = 500
+    Width = 700
+    AutoCenter = .T.
+    
+    ADD OBJECT grdProductos AS Grid WITH ;
+        Height = 350, Width = 650, Top = 10, Left = 25
+    
+    ADD OBJECT btnNuevo AS CommandButton WITH ;
+        Caption = "Nuevo", Height = 30, Width = 100, Top = 370, Left = 25
+    
+    ADD OBJECT btnEditar AS CommandButton WITH ;
+        Caption = "Editar", Height = 30, Width = 100, Top = 370, Left = 135
+    
+    ADD OBJECT btnEliminar AS CommandButton WITH ;
+        Caption = "Eliminar", Height = 30, Width = 100, Top = 370, Left = 245
+    
+    ADD OBJECT btnRefrescar AS CommandButton WITH ;
+        Caption = "Refrescar", Height = 30, Width = 100, Top = 370, Left = 355
+    
+    oAPI = .NULL.
+    
+    PROCEDURE Init
+        THIS.oAPI = CREATEOBJECT("HttpClient")
+        THIS.oAPI.cBaseURL = "http://localhost:8000"
+        THIS.CargarProductos()
+    ENDPROC
+    
+    PROCEDURE CargarProductos
+        LOCAL oResultado, i
+        
+        oResultado = THIS.oAPI.HttpGet("/productos/", "activo=true&limit=1000")
+        
+        IF !ISNULL(oResultado)
+            * Crear cursor temporal para el grid
+            CREATE CURSOR curProductos (;
+                id I, ;
+                codigo C(20), ;
+                nombre C(200), ;
+                precio N(10,2), ;
+                stock I, ;
+                estado C(20))
+            
+            FOR i = 1 TO ALEN(oResultado.productos)
+                INSERT INTO curProductos VALUES (;
+                    oResultado.productos[i].id, ;
+                    oResultado.productos[i].codigo_producto, ;
+                    oResultado.productos[i].nombre, ;
+                    oResultado.productos[i].precio_unitario, ;
+                    oResultado.productos[i].stock_actual, ;
+                    oResultado.productos[i].estado_stock)
+            ENDFOR
+            
+            THIS.grdProductos.RecordSource = "curProductos"
+            THIS.grdProductos.Refresh()
+        ELSE
+            MESSAGEBOX("Error al cargar productos: " + THIS.oAPI.cLastError, 16)
+        ENDIF
+    ENDPROC
+    
+    PROCEDURE btnRefrescar.Click
+        THISFORM.CargarProductos()
+        MESSAGEBOX("Productos actualizados", 64, "Éxito")
+    ENDPROC
+    
+    PROCEDURE btnNuevo.Click
+        * Aquí abrir formulario de edición en modo nuevo
+        * DO FORM FrmEditarProducto WITH .NULL., THISFORM
+    ENDPROC
+    
+    PROCEDURE btnEditar.Click
+        IF RECCOUNT("curProductos") > 0
+            * Abrir formulario de edición con el ID seleccionado
+            * DO FORM FrmEditarProducto WITH curProductos.id, THISFORM
+        ELSE
+            MESSAGEBOX("Seleccione un producto", 48)
+        ENDIF
+    ENDPROC
+    
+    PROCEDURE btnEliminar.Click
+        LOCAL llRespuesta
+        
+        IF RECCOUNT("curProductos") > 0
+            llRespuesta = MESSAGEBOX("¿Eliminar el producto '" + ;
+                ALLTRIM(curProductos.nombre) + "'?", 4+32, "Confirmar")
+            
+            IF llRespuesta = 6
+                IF THIS.oAPI.HttpDelete("/productos/" + TRANSFORM(curProductos.id))
+                    MESSAGEBOX("Producto eliminado", 64, "Éxito")
+                    THIS.CargarProductos()
+                ELSE
+                    MESSAGEBOX("Error: " + THIS.oAPI.cLastError, 16)
+                ENDIF
+            ENDIF
+        ELSE
+            MESSAGEBOX("Seleccione un producto", 48)
+        ENDIF
+    ENDPROC
+    
+ENDDEFINE</code></pre>
+
+                <h3>6.2 Proceso Completo de Pedido</h3>
+                
+                <pre><code>* Proceso completo: desde selección de productos hasta creación de pedido
+
+PROCEDURE CrearPedidoCompleto
+    LOCAL oAPI, oCliente, lcJSON, oPedido
+    LOCAL lnClienteID, lnTipoClienteID
+    LOCAL ARRAY aItems[1]
+    
+    oAPI = CREATEOBJECT("HttpClient")
+    oAPI.cBaseURL = "http://localhost:8000"
+    
+    * 1. Seleccionar cliente
+    lnClienteID = 1  && En producción, mostrar formulario de selección
+    lnTipoClienteID = 1
+    
+    * 2. Crear cursor temporal para items del pedido
+    CREATE CURSOR curItems (;
+        producto_id I, ;
+        codigo C(20), ;
+        nombre C(200), ;
+        cantidad I, ;
+        precio N(10,2), ;
+        subtotal N(12,2))
+    
+    * 3. Usuario selecciona productos (en producción, desde un formulario)
+    INSERT INTO curItems VALUES (1, "PROD001", "Producto 1", 10, 150.00, 1500.00)
+    INSERT INTO curItems VALUES (2, "PROD002", "Producto 2", 5, 200.00, 1000.00)
+    
+    * 4. Construir JSON del pedido
+    lcJSON = THIS.ConstruirJSONPedido(lnClienteID, lnTipoClienteID)
+    
+    * 5. Enviar pedido a la API
+    oPedido = oAPI.HttpPost("/pedidos/", lcJSON)
+    
+    IF !ISNULL(oPedido)
+        MESSAGEBOX("Pedido creado exitosamente!" + CHR(13) + CHR(13) + ;
+                   "Número: " + oPedido.numero_pedido + CHR(13) + ;
+                   "Total: $" + TRANSFORM(oPedido.total, "999,999.99") + CHR(13) + ;
+                   "Estado: " + oPedido.estado, 64, "Éxito")
+        
+        * Imprimir o mostrar detalles del pedido
+        THIS.MostrarDetallePedido(oPedido.id)
+    ELSE
+        MESSAGEBOX("Error al crear pedido:" + CHR(13) + ;
+                   oAPI.cLastError, 16, "Error")
+    ENDIF
+    
+    USE IN curItems
+ENDPROC
+
+FUNCTION ConstruirJSONPedido(tnClienteID, tnTipoClienteID)
+    LOCAL lcJSON, lcItems, i
+    
+    * Construir items
+    lcItems = ""
+    SCAN
+        IF !EMPTY(lcItems)
+            lcItems = lcItems + ","
+        ENDIF
+        
+        TEXT TO lcItemActual NOSHOW TEXTMERGE
+        {
+            "producto_id": <<curItems.producto_id>>,
+            "cantidad": <<curItems.cantidad>>,
+            "precio_unitario": <<curItems.precio>>
+        }
+        ENDTEXT
+        
+        lcItems = lcItems + lcItemActual
+    ENDSCAN
+    
+    * Construir pedido completo
+    TEXT TO lcJSON NOSHOW TEXTMERGE
+    {
+        "cliente_id": <<tnClienteID>>,
+        "tipo_cliente_id": <<tnTipoClienteID>>,
+        "fecha_pedido": "<<TTOC(DATETIME(), 3)>>",
+        "observaciones": "Pedido desde VFP",
+        "items": [<<lcItems>>]
+    }
+    ENDTEXT
+    
+    RETURN lcJSON
+ENDFUNC</code></pre>
+            </div>
+
+            <div class="success">
+                <strong>✅ Resumen de Mejores Prácticas:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Siempre usar TRY-CATCH para manejar errores</li>
+                    <li>Validar respuestas antes de procesarlas</li>
+                    <li>Usar biblioteca nfJson para manejo robusto de JSON</li>
+                    <li>Implementar timeouts apropiados (30 segundos recomendado)</li>
+                    <li>Proporcionar mensajes de error claros al usuario</li>
+                    <li>Centralizar la configuración de la API</li>
+                    <li>Crear clases reutilizables para operaciones comunes</li>
+                </ul>
+            </div>
+
+            <div class="note">
+                <strong>📚 Recursos Adicionales:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><strong>nfJson (VFPX):</strong> <a href="https://github.com/VFPX/nfJson" target="_blank">https://github.com/VFPX/nfJson</a></li>
+                    <li><strong>Documentación FastAPI:</strong> Disponible en http://localhost:8000/docs</li>
+                    <li><strong>VFPX Thor:</strong> Herramientas útiles para VFP</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
