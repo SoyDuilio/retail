@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Vendedor - Sistema Distribución</title>
-    <link rel="stylesheet" href="/static/css/vendedor/ventas_externas.css?v=3">
+    <link rel="stylesheet" href="/static/css/vendedor/ventas_externas.css?v=5">
 </head>
 <body>
     <!-- Header sticky con información del vendedor y pedido -->
@@ -68,72 +68,95 @@
     </header>
 
     <div class="container-main">
-        <!-- Sección de búsqueda de cliente (compacta) -->
-        <div class="seccion-busqueda-cliente" id="seccionBusquedaCliente">
+        <div class="seccion-busqueda-combinada">
             <div class="glass-card">
-                <div class="busqueda-cliente-header">
-                    <h3 class="seccion-titulo">Seleccionar Cliente</h3>
-                </div>
-                <div class="input-group">
-                    <input
-                        type="text"
-                        id="inputBusquedaCliente"
-                        class="input-busqueda-cliente"
-                        placeholder="RUC, Nombre o WhatsApp del cliente..."
-                        autocomplete="off"
-                    >
-                    <button class="btn-mic" id="micCliente" onclick="iniciarDictadoCliente()">
-                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                        </svg>
-                    </button>
-                    <button class="btn-nuevo-cliente" onclick="abrirModalNuevoCliente()">
-                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Nuevo
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Dropdown FUERA del glass-card -->
-            <div class="dropdown-resultados hidden" id="dropdownClientes"></div>
-        </div>
+                <!-- Búsqueda dual (se oculta al seleccionar cliente) -->
+                <div class="busqueda-dual">
+                    <!-- Búsqueda de Cliente -->
+                    <div class="input-wrapper">
+                        <label class="input-label">Cliente</label>
+                        <div class="input-group-compacto">
+                            <input
+                                type="text"
+                                id="inputBusquedaCliente"
+                                class="input-compacto"
+                                placeholder="RUC o nombre..."
+                                autocomplete="off"
+                            >
+                            <button class="btn-mic-compacto" id="micCliente" onclick="iniciarDictadoCliente()">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-nuevo-cliente" onclick="abrirModalNuevoCliente()">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="dropdown-resultados hidden" id="dropdownClientes"></div>
+                    </div>
 
-        <!-- Sección principal de búsqueda de productos -->
-        <div class="seccion-productos" id="seccionProductos">
-            <div class="glass-card">
-                <div class="input-group-principal">
-                    <input
-                        type="text"
-                        id="inputProductos"
-                        class="input-principal"
-                        placeholder="Buscar productos por nombre o código..."
-                        disabled
-                    >
-                    <button class="btn-mic-principal" id="micProductos" onclick="iniciarDictadoProductos()" disabled>
-                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    <!-- Placeholder para simetría -->
+                    <div class="input-wrapper">
+                        <label class="input-label">Producto</label>
+                        <div class="input-placeholder">
+                            <span>Selecciona un cliente primero</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chip de cliente (visible después de seleccionar) -->
+                <div class="chip-cliente hidden" id="chipCliente">
+                    <div class="chip-content">
+                        <span class="chip-nombre" id="chipClienteNombre"></span>
+                        <span class="chip-tipo" id="chipClienteTipo"></span>
+                    </div>
+                    <button class="chip-close" onclick="cambiarCliente()">
+                        <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
-                
+
+                <!-- Búsqueda de productos (SIEMPRE visible después de seleccionar cliente) -->
+                <div class="busqueda-productos hidden" id="busquedaProductos">
+                    <label class="input-label">Buscar Productos</label>
+                    <div class="input-group-compacto">
+                        <input
+                            type="text"
+                            id="inputProductos"
+                            class="input-compacto"
+                            placeholder="Código o nombre del producto..."
+                            autocomplete="off"
+                        >
+                        <button class="btn-mic-compacto" id="micBrowser" onclick="toggleRecordingBrowser()" title="Micrófono del navegador">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-mic-compacto btn-mic-google" id="micGoogle" onclick="toggleRecordingGoogle()" title="Micrófono de Google">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="dropdown-productos hidden" id="dropdownProductos">
+                        <div class="dropdown-productos-header">
+                            <span id="countSeleccionados">0 seleccionados</span>
+                            <button class="btn-agregar-productos hidden" id="btnAgregarProductos" onclick="agregarProductosSeleccionados()">
+                                Agregar
+                            </button>
+                        </div>
+                        <div class="dropdown-productos-lista" id="listaProductosDropdown"></div>
+                    </div>
+                </div>
+
                 <!-- Indicador de procesamiento -->
                 <div class="procesando hidden" id="procesandoProductos">
                     <div class="spinner"></div>
                     <span>Procesando pedido...</span>
                 </div>
-            </div>
-            
-            <!-- Dropdown FUERA del glass-card -->
-            <div class="dropdown-productos hidden" id="dropdownProductos">
-                <div class="dropdown-productos-header">
-                    <span id="countSeleccionados">0 seleccionados</span>
-                    <button class="btn-agregar-productos hidden" id="btnAgregarProductos" onclick="agregarProductosSeleccionados()">
-                        Agregar al pedido
-                    </button>
-                </div>
-                <div class="dropdown-productos-lista" id="listaProductosDropdown"></div>
             </div>
         </div>
 
@@ -156,28 +179,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Pedidos recientes -->
-<!--
-        <div class="pedidos-recientes">
-            <div class="glass-card">
-                <div class="recientes-header">
-                    <h3 class="seccion-titulo">Recientes</h3>
-                    <button class="btn-refresh" onclick="actualizarPedidos()">
-                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div id="pedidosRecientes">
-                    <div class="empty-state">
-                        <p>No hay pedidos recientes</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
--->
 
     <!-- Barra inferior con accesos rápidos -->
     <div class="barra-inferior">
@@ -326,6 +327,44 @@
                     <button class="btn-primary" onclick="enviarPedidoFinal()">
                         ENVIAR PEDIDO
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Pedidos del Día -->
+    <div class="modal-overlay hidden" id="modalPedidos">
+        <div class="modal-large">
+            <div class="modal-header">
+                <h3>📦 Pedidos del Día</h3>
+                <button class="btn-close-modal" onclick="cerrarModal('modalPedidos')">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-resumen">
+                    <div class="stat-card">
+                        <div class="stat-numero" id="totalPedidosHoy">0</div>
+                        <div class="stat-titulo">Total Pedidos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-numero" id="totalVentasHoy">S/ 0</div>
+                        <div class="stat-titulo">Total Ventas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-numero" id="pendientesHoy">0</div>
+                        <div class="stat-titulo">Pendientes</div>
+                    </div>
+                </div>
+                
+                <div id="listaPedidosHoy" class="lista-pedidos-modal">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Cargando pedidos...</p>
+                    </div>
                 </div>
             </div>
         </div>
