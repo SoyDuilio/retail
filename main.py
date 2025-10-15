@@ -2593,8 +2593,9 @@ if __name__ == "__main__":
 
 
 @app.get("/guia", response_class=HTMLResponse)
-async def guia(request: Request, evaluador_id: int):
+async def guia(request: Request):
     return templates.TemplateResponse("guia2.html", {"request": request})
+
 
 
 
