@@ -1,503 +1,682 @@
-// Variables globales
-let pedidosData = [];
+// ==================== WEBSOCKET ====================
+let ws = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/evaluador/${evaluadorId}`;
+    
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+        console.log('✅ WebSocket conectado');
+        reconnectAttempts = 0;
+        mostrarNotificacion('Conectado - Recibirás notificaciones en tiempo real', 'success');
+    };
+    
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handleWebSocketMessage(message);
+    };
+    
+    ws.onerror = (error) => {
+        console.error('❌ Error WebSocket:', error);
+    };
+    
+    ws.onclose = () => {
+        console.log('❌ WebSocket cerrado');
+        
+        // Intentar reconectar
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            console.log(`Reintentando conexión en ${delay/1000}s...`);
+            setTimeout(connectWebSocket, delay);
+        } else {
+            mostrarNotificacion('Conexión perdida. Recarga la página.', 'error');
+        }
+    };
+}
+
+function handleWebSocketMessage(message) {
+    console.log('📨 Mensaje recibido:', message);
+    
+    switch(message.type) {
+        case 'pedido_nuevo':
+            handlePedidoNuevo(message.data);
+            break;
+        case 'pedido_actualizado':
+            handlePedidoActualizado(message.data);
+            break;
+        case 'system_message':
+            mostrarNotificacion(message.data.message, 'info');
+            break;
+        case 'emergency':
+            mostrarNotificacion('🚨 ' + message.data.message, 'error');
+            break;
+    }
+    
+    // Reproducir sonido si está habilitado
+    if (message.sound) {
+        playNotificationSound();
+    }
+}
+
+function handlePedidoNuevo(data) {
+    // Notificación visual
+    mostrarNotificacion(
+        `🔔 Nuevo pedido: ${data.numero_pedido} - ${data.cliente} - S/ ${data.total}`,
+        'info'
+    );
+    
+    // Recargar lista de pedidos
+    cargarPedidosPendientes();
+    cargarEstadisticas();
+    
+    // Parpadear título de la página
+    blinkPageTitle('¡Nuevo Pedido!');
+}
+
+function handlePedidoActualizado(data) {
+    // Recargar lista
+    cargarPedidosPendientes();
+    cargarEstadisticas();
+}
+
+function playNotificationSound() {
+    // Sonido simple con Web Audio API
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+        console.log('No se pudo reproducir sonido');
+    }
+}
+
+function blinkPageTitle(message) {
+    let original = document.title;
+    let count = 0;
+    const interval = setInterval(() => {
+        document.title = count % 2 === 0 ? message : original;
+        count++;
+        if (count > 6) {
+            clearInterval(interval);
+            document.title = original;
+        }
+    }, 1000);
+}
+// Fin conexión WebSocket
+// =======================
+
 let filtrosActivos = {
+    texto: '',
     estado: 'todos',
-    monto: 'todos', 
-    vendedor: 'todos',
-    busqueda: ''
+    monto: 'todos',
+    vendedor: 'todos'
 };
 
-// Datos simulados para la demo
-const pedidosSimulados = [
-    {
-        id: 'PED-2025-001',
-        cliente: 'Bodega Central',
-        ruc: '20123456789',
-        vendedor: 'Juan Pérez',
-        vendedorCode: 'juan',
-        monto: 8500,
-        tiempo: '2h 15m',
-        estado: 'urgente',
-        productos: ['24x Coca Cola 500ml', '12x Inca Kola 1L', '+ 3 productos más'],
-        credito: { usado: '30%', dias: '30', limite: 'S/ 10,000', score: '85/100' }
-    },
-    {
-        id: 'PED-2025-002',
-        cliente: 'Minimarket El Sol',
-        ruc: '20987654321',
-        vendedor: 'María García',
-        vendedorCode: 'maria',
-        monto: 3200,
-        tiempo: '45m',
-        estado: 'pendiente',
-        productos: ['48x Agua San Luis 625ml', '24x Sprite 500ml'],
-        credito: { usado: '64%', dias: '15', limite: 'S/ 5,000', score: '72/100' }
-    },
-    {
-        id: 'PED-2025-003',
-        cliente: 'Tienda Los Amigos',
-        ruc: '20456789123',
-        vendedor: 'Carlos López',
-        vendedorCode: 'carlos',
-        monto: 1850,
-        tiempo: '15m',
-        estado: 'normal',
-        productos: ['36x Fanta 500ml'],
-        credito: { usado: '37%', dias: '30', limite: 'S/ 5,000', score: '91/100' }
-    },
-    {
-        id: 'PED-2025-004',
-        cliente: 'Supermercado La Familia',
-        ruc: '20123987456',
-        vendedor: 'Ana Rodríguez',
-        vendedorCode: 'ana',
-        monto: 12750,
-        tiempo: '1h 20m',
-        estado: 'pendiente',
-        productos: ['100x Coca Cola 500ml', '50x Inca Kola 1L', '+ 8 productos más'],
-        credito: { usado: '85%', dias: '45', limite: 'S/ 15,000', score: '68/100' }
-    },
-    {
-        id: 'PED-2025-005',
-        cliente: 'Bazar San Miguel',
-        ruc: '20789456123',
-        vendedor: 'Roberto Silva',
-        vendedorCode: 'roberto',
-        monto: 2680,
-        tiempo: '3h 45m',
-        estado: 'pendiente',
-        productos: ['24x Sprite 1L', '12x Fanta 2L'],
-        credito: { usado: '54%', dias: '30', limite: 'S/ 5,000', score: '78/100' }
-    },
-    {
-        id: 'PED-2025-006',
-        cliente: 'Distribuidora Norte',
-        ruc: '20654321987',
-        vendedor: 'Luis Mendoza',
-        vendedorCode: 'luis',
-        monto: 6420,
-        tiempo: '25m',
-        estado: 'pendiente',
-        productos: ['72x Coca Cola 500ml', '24x Agua San Luis 625ml', '+ 2 productos más'],
-        credito: { usado: '43%', dias: '30', limite: 'S/ 15,000', score: '88/100' }
-    }
-];
+// ==================== CONFIGURACIÓN ====================
+let token = localStorage.getItem('auth_token');
+let evaluadorId = null;
+let pedidosPendientes = [];
+let pedidoSeleccionado = null;
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', function() {
-    pedidosData = [...pedidosSimulados];
-    cargarPedidos();
-    actualizarContadores();
+// ==================== INICIALIZACIÓN ====================
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Iniciando dashboard evaluador...');
     
-    // Configurar eventos de teclado
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            cerrarModal();
-        }
-    });
+    if (!token) {
+        console.error('❌ No hay token');
+        window.location.href = '/login';
+        return;
+    }
     
-    // Notificación de bienvenida
-    setTimeout(() => {
-        mostrarNotificacion('Sistema conectado - Datos simulados para demo', 'success');
-    }, 1000);
+    // Obtener ID del evaluador desde la URL
+    const pathParts = window.location.pathname.split('/');
+    evaluadorId = pathParts[pathParts.length - 1];
+    
+    // Conectar WebSocket
+    connectWebSocket();
+    
+    await cargarEstadisticas();
+    await cargarPedidosPendientes();
+    
+    // Auto-refresh cada 30 segundos
+    setInterval(() => {
+        cargarEstadisticas();
+        cargarPedidosPendientes();
+    }, 30000);
 });
 
-// Función para cargar y mostrar pedidos
-function cargarPedidos() {
+// ==================== ESTADÍSTICAS ====================
+async function cargarEstadisticas() {
+    try {
+        const response = await fetch('/api/evaluador/estadisticas', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.querySelector('.stat-item:nth-child(1) .stat-number').textContent = result.data.pendientes;
+            document.querySelector('.stat-item:nth-child(2) .stat-number').textContent = result.data.evaluados_hoy;
+            document.querySelector('.stat-item:nth-child(3) .stat-number').textContent = result.data.tasa_aprobacion + '%';
+        }
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
+
+// ==================== PEDIDOS PENDIENTES ====================
+async function cargarPedidosPendientes() {
+    try {
+        const response = await fetch('/api/evaluador/pedidos-pendientes', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            pedidosPendientes = result.data;
+            aplicarFiltros(); // ✅ Aplica filtros guardados en lugar de mostrar todos
+        }
+    } catch (error) {
+        console.error('Error cargando pedidos:', error);
+        mostrarNotificacion('Error al cargar pedidos', 'error');
+    }
+}
+
+// Nueva función que aplica filtros
+function aplicarFiltros() {
+    let pedidosFiltrados = [...pedidosPendientes];
+    
+    // Filtro por texto
+    if (filtrosActivos.texto) {
+        pedidosFiltrados = pedidosFiltrados.filter(p => 
+            p.numero_pedido.toLowerCase().includes(filtrosActivos.texto) ||
+            p.cliente_nombre.toLowerCase().includes(filtrosActivos.texto) ||
+            p.cliente_ruc.includes(filtrosActivos.texto)
+        );
+    }
+    
+    // Filtro por prioridad
+    if (filtrosActivos.estado !== 'todos') {
+        pedidosFiltrados = pedidosFiltrados.filter(p => p.prioridad === filtrosActivos.estado);
+    }
+    
+    // Filtro por monto
+    if (filtrosActivos.monto !== 'todos') {
+        pedidosFiltrados = pedidosFiltrados.filter(p => {
+            if (filtrosActivos.monto === 'bajo') return p.total < 1000;
+            if (filtrosActivos.monto === 'medio') return p.total >= 1000 && p.total <= 5000;
+            if (filtrosActivos.monto === 'alto') return p.total > 5000;
+            return true;
+        });
+    }
+    
+    mostrarPedidos(pedidosFiltrados);
+}
+
+function mostrarPedidos(pedidos) {
     const container = document.getElementById('pedidos-container');
-    container.innerHTML = '';
     
-    pedidosData.forEach(pedido => {
-        const pedidoCard = crearTarjetaPedido(pedido);
-        container.appendChild(pedidoCard);
-    });
+    if (pedidos.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.8); grid-column: 1/-1;">
+                <div style="font-size: 3em; margin-bottom: 20px;">✅</div>
+                <h3 style="color: white;">No hay pedidos pendientes</h3>
+                <p>Todos los pedidos han sido evaluados</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = pedidos.map(pedido => {
+        // Calcular tiempo transcurrido
+        const ahora = new Date();
+        const fechaPedido = new Date(`${pedido.fecha}T${pedido.hora}`);
+        const diffMs = ahora - fechaPedido;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        
+        let tiempoTranscurrido = '';
+        let badgeClass = 'normal';
+        
+        if (diffHours > 2) {
+            tiempoTranscurrido = `${diffHours}h ${diffMins % 60}m`;
+            badgeClass = 'critico';
+        } else if (diffMins > 45) {
+            tiempoTranscurrido = `${diffMins}m`;
+            badgeClass = 'urgente';
+        } else {
+            tiempoTranscurrido = `${diffMins}m`;
+            badgeClass = 'normal';
+        }
+        
+        return `
+            <div class="pedido-card ${pedido.prioridad}" data-id="${pedido.id}">
+                <div class="pedido-header">
+                    <div>
+                        <div class="pedido-numero">#${pedido.numero_pedido}</div>
+                        <div class="pedido-cliente">${pedido.cliente_nombre}</div>
+                        <div class="pedido-vendedor">RUC: ${pedido.cliente_ruc}</div>
+                        <div class="pedido-vendedor">Vendedor: ${pedido.vendedor_nombre}</div>
+                    </div>
+                    <div class="prioridad-badge ${badgeClass}">
+                        ${tiempoTranscurrido}
+                    </div>
+                </div>
+                
+                <div class="pedido-monto">
+                    <span class="monto-label">Monto Total</span>
+                    <span class="monto-valor">S/ ${pedido.total.toFixed(2)}</span>
+                </div>
+                
+                <div class="pedido-productos-preview" id="productos-preview-${pedido.id}">
+                    <div style="padding: 15px 20px; color: #64748b; font-size: 0.9em;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>📦 ${pedido.items_count} producto(s)</span>
+                            <button class="btn-link" onclick="cargarProductosPedido(${pedido.id})">
+                                Ver productos →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85em;">Crédito usado:</span>
+                        <strong style="color: #334155; margin-left: 5px;">--</strong>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85em;">Días:</span>
+                        <strong style="color: #334155; margin-left: 5px;">--</strong>
+                    </div>
+                </div>
+                
+                <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85em;">Límite:</span>
+                        <strong style="color: #334155; margin-left: 5px;">S/ 5,000</strong>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 0.85em;">Score:</span>
+                        <strong style="color: #16a34a; margin-left: 5px;">72/100</strong>
+                    </div>
+                </div>
+                
+                <div class="validaciones-container">
+                    <div class="validacion ${pedido.validaciones.vendedor_activo ? 'ok' : 'error'}">
+                        ${pedido.validaciones.vendedor_activo ? '✓' : '✗'} Vendedor Activo
+                    </div>
+                    <div class="validacion ${pedido.validaciones.cliente_en_zona ? 'ok' : 'error'}">
+                        ${pedido.validaciones.cliente_en_zona ? '✓' : '✗'} Cliente en Zona
+                    </div>
+                    <div class="validacion ${pedido.validaciones.monto_dentro_limite ? 'ok' : 'error'}">
+                        ${pedido.validaciones.monto_dentro_limite ? '✓' : '✗'} Monto Permitido
+                    </div>
+                    <div class="validacion ${pedido.validaciones.cliente_no_moroso ? 'ok' : 'error'}">
+                        ${pedido.validaciones.cliente_no_moroso ? '✓' : '✗'} Sin Mora
+                    </div>
+                </div>
+                
+                <div class="pedido-actions">
+                    <button class="btn btn-secondary" onclick="verDetalle(${pedido.id})">
+                        📋 Ver Detalle
+                    </button>
+                    <button class="btn btn-success" onclick="evaluarPedido(${pedido.id}, 'aprobado')">
+                        ✅ Aprobar
+                    </button>
+                    <button class="btn btn-danger" onclick="evaluarPedido(${pedido.id}, 'rechazado')">
+                        ❌ Rechazar
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-// Crear tarjeta de pedido
-function crearTarjetaPedido(pedido) {
-    const card = document.createElement('div');
-    card.className = `pedido-card ${pedido.estado}`;
-    card.draggable = true;
-    card.dataset.pedidoId = pedido.id;
-    card.dataset.monto = pedido.monto;
-    card.dataset.vendedor = pedido.vendedorCode;
-    card.dataset.cliente = pedido.cliente;
+
+// ==================== CARGAR PRODUCTOS DE UN PEDIDO ====================
+async function cargarProductosPedido(pedidoId) {
+    const previewDiv = document.getElementById(`productos-preview-${pedidoId}`);
     
-    card.addEventListener('dragstart', drag);
+    // Si ya están cargados, solo expandir/colapsar
+    if (previewDiv.dataset.loaded === 'true') {
+        if (previewDiv.dataset.expanded === 'true') {
+            // Colapsar
+            const items = previewDiv.querySelectorAll('.producto-item');
+            items.forEach((item, idx) => {
+                if (idx >= 2) item.style.display = 'none';
+            });
+            previewDiv.dataset.expanded = 'false';
+            previewDiv.querySelector('.btn-link').textContent = `+ ${items.length - 2} producto(s) más`;
+        } else {
+            // Expandir
+            const items = previewDiv.querySelectorAll('.producto-item');
+            items.forEach(item => item.style.display = 'flex');
+            previewDiv.dataset.expanded = 'true';
+            previewDiv.querySelector('.btn-link').textContent = '− Ver menos';
+        }
+        return;
+    }
     
-    card.innerHTML = `
-        <div class="card-header">
-            <span class="pedido-id">#${pedido.id}</span>
-            <span class="tiempo">${pedido.tiempo}</span>
-        </div>
-        <div class="cliente-info">
-            <h4>${pedido.cliente}</h4>
-            <p>RUC: ${pedido.ruc}</p>
-            <p>Vendedor: ${pedido.vendedor}</p>
-        </div>
-        <div class="monto">
-            <div class="total">S/ ${pedido.monto.toLocaleString()}</div>
-        </div>
-        <div class="productos">
-            ${pedido.productos.map(prod => `<div class="producto-item">${prod}</div>`).join('')}
-        </div>
-        <div class="credito-info">
-            <div class="credito-item">
-                <span class="credito-label">Crédito usado:</span>
-                <span class="credito-value">${pedido.credito.usado}</span>
-            </div>
-            <div class="credito-item">
-                <span class="credito-label">Días:</span>
-                <span class="credito-value">${pedido.credito.dias}</span>
-            </div>
-            <div class="credito-item">
-                <span class="credito-label">Límite:</span>
-                <span class="credito-value">${pedido.credito.limite}</span>
-            </div>
-            <div class="credito-item">
-                <span class="credito-label">Score:</span>
-                <span class="credito-value">${pedido.credito.score}</span>
-            </div>
-        </div>
-        <div class="card-actions">
-            <button class="btn-evaluar" onclick="abrirEvaluacion('${pedido.id}')">Evaluar Pedido</button>
-            <button class="btn-rechazar" onclick="rechazarPedido('${pedido.id}')">✕</button>
-        </div>
-    `;
+    // Mostrar loading
+    previewDiv.innerHTML = '<div style="padding: 15px 20px; text-align: center; color: #64748b; font-size: 0.85em;">Cargando productos...</div>';
     
-    return card;
+    try {
+        const response = await fetch(`/api/evaluador/pedido/${pedidoId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data.items) {
+            const items = result.data.items;
+            const mostrarTodos = items.length <= 3;
+            const itemsOcultos = items.length - 2;
+            
+            previewDiv.innerHTML = `
+                <div style="padding: 8px 15px;">
+                    ${items.map((item, idx) => `
+                        <div class="producto-item" style="display: ${!mostrarTodos && idx >= 2 ? 'none' : 'flex'};">
+                            <span style="color: #334155; flex: 1;">
+                                <strong>${Math.floor(item.cantidad)}x</strong> ${item.producto_nombre}
+                            </span>
+                        </div>
+                    `).join('')}
+                    
+                    ${!mostrarTodos ? `
+                        <div style="text-align: center; margin-top: 8px;">
+                            <button class="btn-link" onclick="toggleProductos(${pedidoId})">
+                                + ${itemsOcultos} producto(s) más
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            previewDiv.dataset.loaded = 'true';
+            previewDiv.dataset.expanded = 'false';
+            
+            // Actualizar info de crédito si está disponible
+            if (result.data.cliente) {
+                const card = document.querySelector(`[data-id="${pedidoId}"]`);
+                if (card && result.data.cliente.deuda_actual !== undefined) {
+                    const creditoUsado = result.data.cliente.deuda_actual || 0;
+                    const diasMora = result.data.cliente.dias_mora || 0;
+                    const tasaPago = result.data.cliente.tasa_pago || 0;
+                    
+                    // Actualizar valores de crédito
+                    const infoRows = card.querySelectorAll('[style*="background: #f8fafc"]');
+                    if (infoRows[0]) {
+                        const strongs = infoRows[0].querySelectorAll('strong');
+                        if (strongs[0]) strongs[0].textContent = `${Math.round(creditoUsado / 5000 * 100)}%`;
+                        if (strongs[1]) strongs[1].textContent = diasMora;
+                    }
+                    if (infoRows[1]) {
+                        const strongs = infoRows[1].querySelectorAll('strong');
+                        if (strongs[1]) strongs[1].textContent = `${tasaPago}/100`;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error cargando productos:', error);
+        previewDiv.innerHTML = `
+            <div style="padding: 15px 20px; color: #ef4444; font-size: 0.85em; text-align: center;">
+                Error al cargar productos
+                <button class="btn-link" onclick="cargarProductosPedido(${pedidoId})">Reintentar</button>
+            </div>
+        `;
+    }
 }
 
-// Función de logout mejorada
-async function logout() {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+// Nueva función para expandir/colapsar productos
+function toggleProductos(pedidoId) {
+    const previewDiv = document.getElementById(`productos-preview-${pedidoId}`);
+    const items = previewDiv.querySelectorAll('.producto-item');
+    const btnLink = previewDiv.querySelector('.btn-link');
+    const isExpanded = previewDiv.dataset.expanded === 'true';
+    
+    if (isExpanded) {
+        // Colapsar - ocultar después del segundo
+        items.forEach((item, idx) => {
+            if (idx >= 2) item.style.display = 'none';
+        });
+        btnLink.textContent = `+ ${items.length - 2} producto(s) más`;
+        previewDiv.dataset.expanded = 'false';
+    } else {
+        // Expandir - mostrar todos
+        items.forEach(item => item.style.display = 'flex');
+        btnLink.textContent = '− Ver menos';
+        previewDiv.dataset.expanded = 'true';
+    }
+}
+
+
+// ==================== VER DETALLE ====================
+async function verDetalle(pedidoId) {
+    try {
+        const response = await fetch(`/api/evaluador/pedido/${pedidoId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            mostrarModalDetalle(result.data);
+        }
+    } catch (error) {
+        console.error('Error obteniendo detalle:', error);
+        mostrarNotificacion('Error al cargar detalle', 'error');
+    }
+}
+
+function mostrarModalDetalle(data) {
+    const modal = document.getElementById('modal-evaluacion');
+    document.getElementById('modal-pedido-id').textContent = data.pedido.numero_pedido;
+    
+    // Actualizar información del modal con datos reales
+    const scoreCredito = data.cliente.tasa_pago || 85;
+    const utilizacionCredito = data.cliente.deuda_actual > 0 ? 
+        Math.min((data.cliente.deuda_actual / 10000 * 100), 100) : 30;
+    const historialPagos = data.cliente.tasa_pago || 98;
+    
+    // Actualizar cards de riesgo
+    document.querySelector('.risk-card:nth-child(1) div:nth-child(2)').textContent = `${scoreCredito}/100`;
+    document.querySelector('.risk-card:nth-child(2) div:nth-child(2)').textContent = `${Math.round(utilizacionCredito)}%`;
+    document.querySelector('.risk-card:nth-child(3) div:nth-child(2)').textContent = `${historialPagos}%`;
+    
+    // Guardar referencia del pedido actual
+    pedidoSeleccionado = data.pedido;
+    
+    modal.classList.add('show');
+}
+
+// ==================== EVALUAR PEDIDO ====================
+async function evaluarPedido(pedidoId, resultado) {
+    // ✅ Mostrar confirmación con notificación en lugar de confirm()
+    if (resultado === 'rechazado') {
+        const motivoRechazo = prompt('Motivo del rechazo:');
+        if (!motivoRechazo) {
+            mostrarNotificacion('Debes ingresar un motivo de rechazo', 'warning');
+            return;
+        }
+        
+        // Mostrar loading
+        mostrarNotificacion('Procesando rechazo...', 'info');
+        
         try {
-            // Simular llamada al backend
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const response = await fetch('/api/evaluador/evaluar-pedido', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pedido_id: pedidoId,
+                    resultado: resultado,
+                    motivo_rechazo: motivoRechazo,
+                    observaciones: null
+                })
+            });
             
-            localStorage.removeItem('token');
-            localStorage.removeItem('user_data');
-            mostrarNotificacion('Sesión cerrada correctamente', 'success');
+            const result = await response.json();
             
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1000);
+            if (result.success) {
+                mostrarNotificacion('✅ Pedido rechazado exitosamente', 'success');
+                
+                // Recargar pedidos
+                await cargarPedidosPendientes();
+                await cargarEstadisticas();
+            } else {
+                mostrarNotificacion('❌ ' + (result.message || 'Error al rechazar pedido'), 'error');
+            }
         } catch (error) {
-            console.error('Error en logout:', error);
-            window.location.href = '/';
+            console.error('Error evaluando pedido:', error);
+            mostrarNotificacion('❌ Error de conexión', 'error');
+        }
+    } else {
+        // Aprobar sin pedir confirmación, solo notificar
+        mostrarNotificacion('Procesando aprobación...', 'info');
+        
+        try {
+            const response = await fetch('/api/evaluador/evaluar-pedido', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pedido_id: pedidoId,
+                    resultado: resultado,
+                    motivo_rechazo: null,
+                    observaciones: null
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                mostrarNotificacion('✅ Pedido aprobado exitosamente', 'success');
+                
+                // Recargar pedidos
+                await cargarPedidosPendientes();
+                await cargarEstadisticas();
+            } else {
+                mostrarNotificacion('❌ ' + (result.message || 'Error al aprobar pedido'), 'error');
+            }
+        } catch (error) {
+            console.error('Error evaluando pedido:', error);
+            mostrarNotificacion('❌ Error de conexión', 'error');
         }
     }
 }
 
-// Sistema de notificaciones
-function mostrarNotificacion(mensaje, tipo = 'success') {
+// ==================== MODAL ====================
+function cerrarModal() {
+    document.getElementById('modal-evaluacion').classList.remove('show');
+    pedidoSeleccionado = null;
+}
+
+function guardarEvaluacion() {
+    if (!pedidoSeleccionado) return;
+    
+    const decision = document.getElementById('decision-evaluacion').value;
+    const comentarios = document.getElementById('comentarios').value;
+    
+    evaluarPedido(
+        pedidoSeleccionado.id,
+        decision === 'condicional' ? 'aprobado' : decision
+    );
+    
+    cerrarModal();
+}
+
+// ==================== FILTROS ====================
+function filtrarPedidos() {
+    const searchText = document.querySelector('.search-input').value.toLowerCase();
+    const estadoFilter = document.querySelectorAll('.filter-select')[0].value;
+    const montoFilter = document.querySelectorAll('.filter-select')[1].value;
+    const vendedorFilter = document.querySelectorAll('.filter-select')[2].value;
+    
+    // Guardar filtros
+    filtrosActivos = {
+        texto: searchText,
+        estado: estadoFilter,
+        monto: montoFilter,
+        vendedor: vendedorFilter
+    };
+    
+    aplicarFiltros();
+}
+
+// ==================== UTILIDADES ====================
+function formatearFecha(fecha) {
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatearTipoPago(tipo) {
+    const tipos = {
+        'CREDITO': '💳 Crédito',
+        'CONTADO': '💵 Contado',
+        'EFECTIVO_CASH': '💵 Efectivo',
+        'EFECTIVO_YAPE': '📱 Yape',
+        'EFECTIVO_PLIN': '📱 Plin'
+    };
+    return tipos[tipo] || tipo;
+}
+
+function mostrarNotificacion(mensaje, tipo = 'info') {
     const notification = document.getElementById('notification');
     notification.textContent = mensaje;
-    notification.className = `notification ${tipo}`;
-    notification.classList.add('show');
+    notification.className = `notification ${tipo} show`;
     
     setTimeout(() => {
         notification.classList.remove('show');
     }, 3000);
 }
 
-// Búsqueda y filtrado
-function filtrarPedidos() {
-    const busqueda = document.querySelector('.search-input').value.toLowerCase();
-    const estado = document.querySelector('.filter-select').value;
-    const monto = document.querySelectorAll('.filter-select')[1].value;
-    const vendedor = document.querySelectorAll('.filter-select')[2].value;
-    
-    filtrosActivos = { estado, monto, vendedor, busqueda };
-    
-    const pedidos = document.querySelectorAll('.pedido-card');
-    let pedidosVisibles = 0;
-    
-    pedidos.forEach(pedido => {
-        let mostrar = true;
-        
-        // Filtro por búsqueda
-        if (busqueda) {
-            const texto = pedido.textContent.toLowerCase();
-            mostrar = mostrar && texto.includes(busqueda);
-        }
-        
-        // Filtro por estado
-        if (estado !== 'todos') {
-            mostrar = mostrar && pedido.classList.contains(estado);
-        }
-        
-        // Filtro por monto
-        if (monto !== 'todos') {
-            const montoValor = parseInt(pedido.dataset.monto);
-            switch (monto) {
-                case 'bajo':
-                    mostrar = mostrar && montoValor < 1000;
-                    break;
-                case 'medio':
-                    mostrar = mostrar && montoValor >= 1000 && montoValor <= 5000;
-                    break;
-                case 'alto':
-                    mostrar = mostrar && montoValor > 5000;
-                    break;
-            }
-        }
-        
-        // Filtro por vendedor
-        if (vendedor !== 'todos') {
-            mostrar = mostrar && pedido.dataset.vendedor === vendedor;
-        }
-        
-        pedido.style.display = mostrar ? 'block' : 'none';
-        if (mostrar) pedidosVisibles++;
-    });
-    
-    // Actualizar mensaje de paginación
-    const paginationSpan = document.querySelector('.pagination span');
-    if (paginationSpan) {
-        paginationSpan.textContent = `Mostrando ${pedidosVisibles} de ${pedidos.length} pedidos`;
-    }
-    
-    actualizarContadores();
-}
-
-// Ordenamiento
-function ordenarPedidos() {
-    const criterio = document.querySelectorAll('.filter-select')[3].value;
-    const container = document.getElementById('pedidos-container');
-    const pedidos = Array.from(container.children);
-    
-    pedidos.sort((a, b) => {
-        switch (criterio) {
-            case 'monto':
-                return parseInt(b.dataset.monto) - parseInt(a.dataset.monto);
-            case 'prioridad':
-                const prioridades = { urgente: 3, pendiente: 2, normal: 1 };
-                const prioridadA = prioridades[a.className.split(' ')[1]] || 0;
-                const prioridadB = prioridades[b.className.split(' ')[1]] || 0;
-                return prioridadB - prioridadA;
-            case 'cliente':
-                return a.dataset.cliente.localeCompare(b.dataset.cliente);
-            default: // tiempo
-                return a.querySelector('.tiempo').textContent.localeCompare(b.querySelector('.tiempo').textContent);
-        }
-    });
-    
-    pedidos.forEach(pedido => container.appendChild(pedido));
-    mostrarNotificacion(`Pedidos ordenados por ${criterio}`, 'success');
-}
-
-// Drag and Drop
-function allowDrop(ev) {
-    ev.preventDefault();
-    ev.currentTarget.classList.add('drag-over');
-}
-
-function drag(ev) {
-    ev.dataTransfer.setData("text", ev.target.dataset.pedidoId);
-}
-
-function drop(ev) {
-    ev.preventDefault();
-    ev.currentTarget.classList.remove('drag-over');
-    const pedidoId = ev.dataTransfer.getData("text");
-    mostrarNotificacion(`Pedido ${pedidoId} reorganizado`, 'success');
-}
-
-// Modal de evaluación
-function abrirEvaluacion(pedidoId) {
-    const pedido = pedidosData.find(p => p.id === pedidoId);
-    if (!pedido) return;
-    
-    document.getElementById('modal-pedido-id').textContent = pedidoId;
-    
-    // Prellenar datos del pedido
-    const scoreValue = parseInt(pedido.credito.score.split('/')[0]);
-    const utilizacionValue = parseInt(pedido.credito.usado.replace('%', ''));
-    
-    // Actualizar indicadores de riesgo
-    actualizarIndicadoresRiesgo(scoreValue, utilizacionValue);
-    
-    document.getElementById('modal-evaluacion').classList.add('show');
-}
-
-function actualizarIndicadoresRiesgo(score, utilizacion) {
-    const riskCards = document.querySelectorAll('.risk-card');
-    
-    // Actualizar score crediticio
-    const scoreCard = riskCards[0];
-    scoreCard.querySelector('div[style*="font-size"]').textContent = `${score}/100`;
-    scoreCard.className = `risk-card ${score >= 80 ? 'low' : score >= 60 ? 'medium' : 'high'}`;
-    scoreCard.querySelector('small').textContent = score >= 80 ? 'Riesgo Bajo' : score >= 60 ? 'Riesgo Medio' : 'Riesgo Alto';
-    
-    // Actualizar utilización
-    const utilizacionCard = riskCards[1];
-    utilizacionCard.querySelector('div[style*="font-size"]').textContent = `${utilizacion}%`;
-    utilizacionCard.className = `risk-card ${utilizacion <= 50 ? 'low' : utilizacion <= 75 ? 'medium' : 'high'}`;
-    utilizacionCard.querySelector('small').textContent = utilizacion <= 50 ? 'Uso Bajo' : utilizacion <= 75 ? 'Uso Moderado' : 'Uso Alto';
-}
-
-function cerrarModal() {
-    document.getElementById('modal-evaluacion').classList.remove('show');
-}
-
-function guardarEvaluacion() {
-    const pedidoId = document.getElementById('modal-pedido-id').textContent;
-    const decision = document.getElementById('decision-evaluacion').value;
-    const limite = document.getElementById('limite-credito').value;
-    const dias = document.getElementById('dias-credito').value;
-    const comentarios = document.getElementById('comentarios').value;
-    
-    // Validaciones
-    if (!limite || limite <= 0) {
-        mostrarNotificacion('El límite de crédito debe ser mayor a 0', 'error');
-        return;
-    }
-    
-    // Simular guardado
-    const loadingMsg = mostrarNotificacion('Guardando evaluación...', 'success');
-    
-    setTimeout(() => {
-        const decisionTexto = {
-            'aprobado': 'aprobado',
-            'condicional': 'aprobado con condiciones', 
-            'rechazado': 'rechazado'
-        }[decision];
-        
-        mostrarNotificacion(`Evaluación de ${pedidoId} guardada: ${decisionTexto}`, 'success');
-        cerrarModal();
-        
-        // Remover pedido del dashboard con animación
-        const pedidoCard = document.querySelector(`[data-pedido-id="${pedidoId}"]`);
-        if (pedidoCard) {
-            pedidoCard.style.transition = 'all 0.5s ease';
-            pedidoCard.style.transform = 'scale(0)';
-            pedidoCard.style.opacity = '0';
-            setTimeout(() => {
-                pedidoCard.remove();
-                // Remover del array de datos
-                pedidosData = pedidosData.filter(p => p.id !== pedidoId);
-                actualizarContadores();
-            }, 500);
-        }
-        
-        // Limpiar formulario
-        document.getElementById('comentarios').value = '';
-        document.getElementById('limite-credito').value = '10000';
-        document.getElementById('dias-credito').value = '30';
-        document.getElementById('decision-evaluacion').value = 'aprobado';
-        
-    }, 1500);
-}
-
-function rechazarPedido(pedidoId) {
-    if (confirm(`¿Estás seguro de rechazar el pedido ${pedidoId}?`)) {
-        mostrarNotificacion(`Pedido ${pedidoId} rechazado`, 'error');
-        
-        const pedidoCard = document.querySelector(`[data-pedido-id="${pedidoId}"]`);
-        if (pedidoCard) {
-            pedidoCard.style.transition = 'all 0.5s ease';
-            pedidoCard.style.transform = 'scale(0)';
-            pedidoCard.style.opacity = '0';
-            setTimeout(() => {
-                pedidoCard.remove();
-                pedidosData = pedidosData.filter(p => p.id !== pedidoId);
-                actualizarContadores();
-            }, 500);
-        }
-    }
-}
-
-// Actualizar contadores
-function actualizarContadores() {
-    const totalPedidos = document.querySelectorAll('.pedido-card').length;
-    const pedidosUrgentes = document.querySelectorAll('.pedido-card.urgente').length;
-    
-    // Actualizar estadísticas en el header
-    const statNumbers = document.querySelectorAll('.stat-number');
-    if (statNumbers.length >= 3) {
-        statNumbers[0].textContent = totalPedidos; // Pendientes
-        statNumbers[1].textContent = Math.max(0, 15 - totalPedidos); // Evaluados hoy (simulado)
-        // El porcentaje de aprobación se mantiene estático para la demo
-    }
-}
-
-// Actualización automática
 function actualizarPedidos() {
-    mostrarNotificacion('Actualizando pedidos...', 'success');
-    
-    setTimeout(() => {
-        // Simular actualización - en producción aquí iría la llamada al API
-        mostrarNotificacion('Pedidos actualizados', 'success');
-        
-        // Simular nuevos pedidos urgentes ocasionalmente
-        if (Math.random() > 0.8) {
-            agregarNuevoPedidoSimulado();
-            mostrarNotificacion('¡Nuevo pedido urgente recibido!', 'warning');
-        }
-    }, 1000);
+    mostrarNotificacion('Actualizando...', 'info');
+    cargarEstadisticas();
+    cargarPedidosPendientes();
 }
 
-// Agregar nuevo pedido simulado
-function agregarNuevoPedidoSimulado() {
-    const nuevoId = `PED-2025-${String(Date.now()).slice(-3)}`;
-    const clientesRandom = ['Bodega Express', 'Market Central', 'Tienda Real', 'Distribuidora Sur'];
-    const vendedoresRandom = [
-        { nombre: 'Juan Pérez', code: 'juan' },
-        { nombre: 'María García', code: 'maria' },
-        { nombre: 'Carlos López', code: 'carlos' }
-    ];
-    
-    const vendedorRandom = vendedoresRandom[Math.floor(Math.random() * vendedoresRandom.length)];
-    const clienteRandom = clientesRandom[Math.floor(Math.random() * clientesRandom.length)];
-    
-    const nuevoPedido = {
-        id: nuevoId,
-        cliente: clienteRandom,
-        ruc: `201${Math.floor(Math.random() * 99999999)}`,
-        vendedor: vendedorRandom.nombre,
-        vendedorCode: vendedorRandom.code,
-        monto: Math.floor(Math.random() * 10000) + 1000,
-        tiempo: '5m',
-        estado: Math.random() > 0.7 ? 'urgente' : 'pendiente',
-        productos: ['24x Producto Nuevo'],
-        credito: { 
-            usado: `${Math.floor(Math.random() * 80)}%`, 
-            dias: '30', 
-            limite: 'S/ 5,000', 
-            score: `${Math.floor(Math.random() * 40) + 60}/100` 
-        }
-    };
-    
-    pedidosData.unshift(nuevoPedido);
-    const container = document.getElementById('pedidos-container');
-    const nuevaCard = crearTarjetaPedido(nuevoPedido);
-    
-    // Insertar al inicio con animación
-    nuevaCard.style.transform = 'scale(0)';
-    nuevaCard.style.opacity = '0';
-    container.insertBefore(nuevaCard, container.firstChild);
-    
-    setTimeout(() => {
-        nuevaCard.style.transition = 'all 0.5s ease';
-        nuevaCard.style.transform = 'scale(1)';
-        nuevaCard.style.opacity = '1';
-    }, 100);
-    
-    actualizarContadores();
+function logout() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    window.location.href = '/login';
 }
 
-// Auto-actualización cada 30 segundos
-setInterval(actualizarPedidos, 30000);
-
-// Actualizar tiempos cada minuto (simulado)
-setInterval(() => {
-    document.querySelectorAll('.tiempo').forEach(tiempo => {
-        // En producción aquí se actualizarían los tiempos reales
-        // Por ahora solo agregamos un indicador visual sutil
-        tiempo.style.animation = 'none';
-        setTimeout(() => {
-            tiempo.style.animation = 'pulse 0.5s ease';
-        }, 10);
-    });
-}, 60000);
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modal = document.getElementById('modal-evaluacion');
+    if (event.target == modal) {
+        cerrarModal();
+    }
+}
