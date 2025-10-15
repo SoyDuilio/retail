@@ -81,7 +81,7 @@ class ProductoModel(Base):
     categoria = relationship("CategoriaModel", back_populates="productos")
     #unidad_medida = relationship("UnidadMedidaModel", back_populates="productos")
     precios = relationship("PrecioClienteModel", back_populates="producto", cascade="all, delete-orphan")
-    #items_pedido = relationship("PedidoItemModel", back_populates="producto")
+    items_pedido = relationship("PedidoItemModel", back_populates="producto")
     movimientos_stock = relationship("MovimientoStockModel", back_populates="producto")
     
     @property
