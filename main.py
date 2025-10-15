@@ -104,7 +104,7 @@ from crud.crud_client import crud_cliente
 
 # Model imports
 # Reemplazar tus importaciones actuales por:
-from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel
+from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel, CategoriaModel, CalificacionModel
 
 from contextlib import asynccontextmanager
 
@@ -2595,3 +2595,4 @@ if __name__ == "__main__":
 @app.get("/guia", response_class=HTMLResponse)
 async def guia(request: Request, evaluador_id: int):
     return templates.TemplateResponse("guia2.html", {"request": request})
+
