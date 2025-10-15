@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Sincronización VFP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 { color: #1e40af; margin-bottom: 30px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-number { font-size: 2.5em; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 0.9em; opacity: 0.9; }
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn:hover { opacity: 0.9; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+        tr:hover { background: #f9fafb; }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge-pendiente { background: #fef3c7; color: #d97706; }
+        .badge-aprobado { background: #dcfce7; color: #16a34a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Panel de Sincronización VFP ↔ Railway</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_productos }}</div>
+                <div class="stat-label">Productos en Railway</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_clientes }}</div>
+                <div class="stat-label">Clientes en Railway</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ pedidos_pendientes }}</div>
+                <div class="stat-label">Pedidos Pendientes</div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <a href="/admin/vfp-sync/descargar-pedidos-csv" class="btn btn-success">
+                📥 Descargar Pedidos CSV
+            </a>
+            <a href="/admin/vfp-sync/descargar-productos-csv" class="btn btn-primary">
+                📥 Descargar Productos CSV
+            </a>
+        </div>
+        
+        <h2>Últimos 20 Pedidos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pedidos_recientes %}
+                <tr>
+                    <td><strong>{{ p.numero_pedido }}</strong></td>
+                    <td>{{ p.fecha.strftime('%d/%m/%Y') }} {{ p.hora.strftime('%H:%M') if p.hora else '' }}</td>
+                    <td>{{ p.cliente.nombre_comercial if p.cliente else 'N/D' }}</td>
+                    <td>S/ {{ "%.2f"|format(p.total) }}</td>
+                    <td>
+                        <span class="badge badge-{{ 'pendiente' if p.estado == 'pendiente_aprobacion' else 'aprobado' }}">
+                            {{ p.estado }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
