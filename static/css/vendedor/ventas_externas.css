@@ -5,13 +5,6 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #4338ca 100%);
-    min-height: 100vh;
-    padding-bottom: 80px;
-    color: #ffffff;
-}
 
 /* Header Sticky */
 .header-sticky {
@@ -99,54 +92,82 @@ body {
     border-color: #ef4444;
 }
 
-.chip-cliente {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
-    max-width: 300px;
+/* ============================================
+   CHIP DE CLIENTE EN HEADER - Estilos Base
+   ============================================ */
+
+.chip-nombre {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chip-tipo {
+    padding: 4px 10px;
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    color: #60a5fa;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .chip-content {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
 }
 
-.chip-nombre {
-    font-size: 12px;
-    font-weight: 600;
-    color: #ffffff;
+.chip-cliente {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    transition: all 0.3s ease;
 }
 
-.chip-tipo {
-    font-size: 10px;
-    color: #bfdbfe;
-    background: rgba(59, 130, 246, 0.3);
-    padding: 2px 6px;
-    border-radius: 8px;
-    display: inline-block;
+.chip-cliente:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .chip-close {
-    width: 20px;
-    height: 20px;
+    background: rgba(239, 68, 68, 0.2);
     border: none;
-    background: rgba(255, 255, 255, 0.2);
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .chip-close:hover {
-    background: rgba(239, 68, 68, 0.8);
+    background: rgba(239, 68, 68, 0.4);
+    transform: scale(1.1);
 }
+
+.chip-close svg {
+    width: 14px;
+    height: 14px;
+    color: #fca5a5;
+}
+
 
 .header-right {
     display: flex;
@@ -191,15 +212,10 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Container principal */
-.container-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px;
-}
-
 /* Glass effect cards */
 .glass-card {
+    width: 100%;
+    box-sizing: border-box;
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -358,35 +374,6 @@ body {
 }
 
 
-/* Dropdown de productos con checkboxes */
-.dropdown-productos {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
-    max-height: 400px;
-    background: rgba(30, 58, 138, 0.98);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    z-index: 1001;
-    animation: slideDown 0.2s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-}
-
-.dropdown-productos-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: rgba(34, 197, 94, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
 .dropdown-productos-header span {
     font-size: 13px;
     font-weight: 600;
@@ -408,13 +395,6 @@ body {
 .btn-agregar-productos:hover {
     background: #16a34a;
     transform: translateY(-1px);
-}
-
-.dropdown-productos-lista {
-    max-height: 340px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(59, 130, 246, 0.5) rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-productos-lista::-webkit-scrollbar {
@@ -448,6 +428,8 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     transition: all 0.2s ease;
+    width: 100%; /* AGREGAR */
+    box-sizing: border-box; /* AGREGAR */
 }
 
 .item-producto-dropdown:hover {
@@ -483,16 +465,14 @@ body {
     opacity: 0.5;
 }
 
-.producto-dropdown-info {
-    flex: 1;
-    min-width: 0;
-}
-
 .producto-dropdown-nombre {
     font-size: 14px;
     font-weight: 600;
     color: #ffffff;
     margin-bottom: 4px;
+    overflow: hidden; /* AGREGAR */
+    text-overflow: ellipsis; /* AGREGAR */
+    white-space: nowrap; /* AGREGAR */
 }
 
 .producto-dropdown-detalles {
@@ -500,6 +480,9 @@ body {
     gap: 12px;
     font-size: 12px;
     color: #93c5fd;
+    overflow: hidden; /* AGREGAR */
+    text-overflow: ellipsis; /* AGREGAR */
+    white-space: nowrap; /* AGREGAR */
 }
 
 .producto-dropdown-precio {
@@ -507,6 +490,7 @@ body {
     font-weight: 700;
     color: #22c55e;
     white-space: nowrap;
+    flex-shrink: 0; /* AGREGAR: Evita que se comprima */
 }
 
 .producto-ya-agregado {
@@ -742,8 +726,73 @@ body {
     background: rgba(255, 255, 255, 0.08);
 }
 
+/* FIX: Layout de cada producto del pedido */
+.producto-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.producto-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 .producto-info {
     flex: 1;
+    min-width: 0; /* Importante para truncar texto largo */
+}
+
+/* Asegurar que controles también sean horizontales */
+.producto-cantidad {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.producto-precio {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 80px;
+}
+
+.precio-unitario {
+    font-size: 12px;
+    color: #93c5fd;
+}
+
+.subtotal {
+    font-size: 16px;
+    font-weight: 700;
+    color: #60a5fa;
+}
+
+.btn-eliminar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border: none;
+    background: rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-eliminar:hover {
+    background: rgba(239, 68, 68, 0.3);
+    transform: scale(1.05);
 }
 
 .producto-nombre {
@@ -771,6 +820,38 @@ body {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 4px;
+}
+
+.cantidad-input {
+    width: 60px;
+    text-align: center;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.cantidad-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Ocultar flechas de input number en Chrome/Safari */
+.cantidad-input::-webkit-outer-spin-button,
+.cantidad-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Ocultar flechas en Firefox */
+.cantidad-input[type=number] {
+    -moz-appearance: textfield;
 }
 
 .btn-cantidad {
@@ -812,35 +893,12 @@ body {
     min-width: 100px;
 }
 
-.precio-unitario {
-    font-size: 12px;
-    color: #93c5fd;
-}
-
 .precio-subtotal {
     font-size: 16px;
     font-weight: 700;
     color: #22c55e;
 }
 
-.btn-eliminar {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: rgba(239, 68, 68, 0.2);
-    border-radius: 8px;
-    color: #fca5a5;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.btn-eliminar:hover {
-    background: rgba(239, 68, 68, 0.4);
-    color: #ffffff;
-}
 
 /* Footer del pedido */
 .pedido-footer {
@@ -1232,15 +1290,813 @@ body {
     display: none !important;
 }
 
-/* Responsive */
+
+/* CORRECCIONES SOLICITADAS POR WALTER */
+/* ============================================
+   AGREGAR AL FINAL DE ventas_externas.css
+   ============================================ */
+
+/* CORRECCIÓN #4: Cliente en una línea */
+.chip-content {
+    display: flex;
+    flex-direction: row !important;
+    gap: 8px;
+    align-items: center;
+}
+
+
+
+.chip-tipo {
+    padding: 2px 8px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #3b82f6;
+}
+
+/* CORRECCIÓN #3: Botón y Total sticky */
+.pedido-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to bottom, rgba(30, 58, 138, 0.95), rgba(30, 58, 138, 1));
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.total-pedido {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.total-monto {
+    font-size: 24px;
+    color: #60a5fa;
+}
+
+.btn-confirmar-pedido {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-confirmar-pedido:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+
+/* CORRECCIÓN #1: Checkbox funcional */
+.checkbox-producto {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checkbox-producto.checked {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.checkbox-producto svg {
+    width: 14px;
+    height: 14px;
+    stroke: white;
+    stroke-width: 3;
+    display: none;
+}
+
+.checkbox-producto.checked svg {
+    display: block;
+}
+
+.producto-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.producto-dropdown-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.producto-dropdown-item.seleccionado {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.producto-dropdown-item.ya-agregado {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.producto-dropdown-info {
+    flex: 1;
+    cursor: pointer;
+    min-width: 0; /* IMPORTANTE: Permite que flex trunce el contenido */
+    overflow: hidden; /* AGREGAR */
+}
+
+.badge-agregado {
+    padding: 4px 8px;
+    background: rgba(168, 85, 247, 0.3);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #a855f7;
+}
+
+/* SISTEMA DE NOTIFICACIONES TOAST */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(30, 58, 138, 0.98);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideInRight 0.3s ease;
+    pointer-events: auto;
+    min-width: 300px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast.removing {
+    animation: slideOutRight 0.3s ease;
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.toast.success {
+    border-left-color: #10b981;
+}
+
+.toast.error {
+    border-left-color: #ef4444;
+}
+
+.toast.warning {
+    border-left-color: #f59e0b;
+}
+
+.toast.info {
+    border-left-color: #3b82f6;
+}
+
+.toast-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast.success .toast-icon {
+    background: #10b981;
+}
+
+.toast.error .toast-icon {
+    background: #ef4444;
+}
+
+.toast.warning .toast-icon {
+    background: #f59e0b;
+}
+
+.toast.info .toast-icon {
+    background: #3b82f6;
+}
+
+.toast-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.toast-content {
+    flex: 1;
+    color: #ffffff;
+}
+
+.toast-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: #bfdbfe;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.toast-close:hover {
+    color: #ffffff;
+}
+
+.toast-close svg {
+    width: 16px;
+    height: 16px;
+}
+
+
+/* CORRECCIÓN #2: Animación para nuevo producto al inicio */
+.producto-item.nuevo {
+    animation: slideInFromTop 0.4s ease;
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mejoras adicionales en lista de productos */
+.lista-productos {
+    max-height: calc(100vh - 450px);
+    overflow-y: auto;
+    margin-bottom: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.5) rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
+}
+
+.lista-productos::-webkit-scrollbar {
+    width: 8px;
+}
+
+.lista-productos::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.lista-productos::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.5);
+    border-radius: 4px;
+}
+
+.lista-productos::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 85, 247, 0.7);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-productos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(59, 130, 246, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.dropdown-productos-lista {
+    padding: 8px;
+    overflow-x: hidden; /* AGREGAR */
+    width: 100%; /* AGREGAR */
+    box-sizing: border-box; /* AGREGAR */
+}
+
+.btn-agregar-productos {
+    padding: 6px 12px;
+    background: #10b981;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-agregar-productos:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+/* Ubicación activa */
+.btn-ubicacion.ubicacion-activa {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+}
+
+.btn-ubicacion.ubicacion-activa svg {
+    color: #10b981;
+}
+
+
+@media (max-width: 1024px) {
+    .header-center {
+        max-width: 40%;
+    }
+    
+    .chip-cliente {
+        max-width: 200px;
+    }
+    
+    .chip-nombre {
+        font-size: 12px;
+        max-width: 120px;
+    }
+    
+    .chip-tipo {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+}
+
+/* ======================================= */
+/* MAS CORRECCIONES: BÚSQUEDA Y SCROLL     */
+/* ======================================= */
+/* ============================================
+   CORRECCIÓN #1: FOOTER STICKY SIN SCROLL
+   ============================================ */
+
+/* Estructura del body para controlar altura total */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Agregar estilos visuales que faltaban */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #4338ca 100%);
+    color: #ffffff;
+}
+
+/* Header con altura fija */
+.header-sticky {
+    height: 80px;
+    flex-shrink: 0;
+}
+
+/* Barra inferior con altura fija */
+.barra-inferior {
+    height: 70px;
+    flex-shrink: 0;
+}
+
+/* Evitar scroll horizontal en container */
+.container-main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden !important;
+    padding: 16px;
+    max-height: calc(100vh - 80px - 70px);
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Productos del pedido con altura controlada */
+.productos-pedido {
+    display: flex;
+    flex-direction: column;
+    /* Altura máxima considerando otros elementos en container-main */
+    max-height: calc(100vh - 80px - 70px - 200px);
+}
+
+/* Asegurar que las secciones sean ancho completo */
+.seccion-busqueda-combinada,
+.productos-pedido,
+.pedidos-recientes {
+    width: 100%;
+    max-width: 100%;
+}
+
+.productos-pedido .glass-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Lista de productos scrolleable */
+.lista-productos {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.5) rgba(255, 255, 255, 0.1);
+}
+
+/* Footer sticky pegado al fondo del card */
+.pedido-footer {
+    position: sticky;
+    bottom: 0;
+    flex-shrink: 0;
+    background: linear-gradient(to bottom, rgba(30, 58, 138, 0.95), rgba(30, 58, 138, 1));
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   CORRECCIÓN #2: BÚSQUEDAS EN LA MISMA LÍNEA
+   ============================================ */
+
+/* Ocultar secciones separadas de búsqueda */
+.seccion-busqueda-cliente,
+.seccion-productos {
+    display: none !important;
+}
+
+/* ============================================
+   DISEÑO ORIGINAL: Inputs uno bajo el otro
+   ============================================ */
+
+/* Sección de búsqueda combinada */
+.seccion-busqueda-combinada {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+/* Inputs en COLUMNA (uno bajo otro) */
+.busqueda-dual {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.input-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #93c5fd;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-group-compacto {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.input-compacto {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.input-compacto::placeholder {
+    color: #93c5fd;
+    opacity: 0.7;
+}
+
+.input-compacto:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-compacto:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Botones de micrófono */
+.btn-mic-compacto {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border: none;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-mic-compacto:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-mic-compacto:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-mic-compacto.recording {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    animation: recordPulse 1s infinite;
+}
+
+.btn-mic-compacto svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Botón de Google diferente */
+.btn-mic-google {
+    background: linear-gradient(135deg, #34a853, #0f9d58);
+}
+
+.btn-mic-google:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0f9d58, #0a7e3e);
+}
+
+/* Botón nuevo cliente */
+.btn-nuevo-cliente {
+    padding: 10px 16px;
+    background: #f97316;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-nuevo-cliente:hover {
+    background: #ea580c;
+    transform: translateY(-2px);
+}
+
+/* Placeholder cuando no hay cliente */
+.input-placeholder {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: #93c5fd;
+    font-size: 13px;
+    text-align: center;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+}
+
+/* Chip de cliente */
+.chip-cliente {
+    margin-top: 0;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease;
+    margin-bottom: 12px;
+}
+
+/* Búsqueda de productos (separada) */
+.busqueda-productos {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+}
+
+/* Estados de compacta */
+.seccion-busqueda-combinada.compacta .busqueda-dual {
+    display: none !important;
+}
+
+.seccion-busqueda-combinada.compacta .chip-cliente {
+    display: flex !important;
+}
+
+.seccion-busqueda-combinada.compacta .busqueda-productos {
+    display: block !important;
+}
+
+/* Dropdowns con ancho completo */
+/* Dropdowns con ancho completo y scrollbar estilizado */
+.dropdown-resultados,
+.dropdown-productos {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 350px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: rgba(30, 58, 138, 0.98);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    z-index: 2000;
+    animation: slideDown 0.2s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    margin: 0;
+    
+    /* Scrollbar para Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar para Chrome/Safari/Edge */
+.dropdown-resultados::-webkit-scrollbar,
+.dropdown-productos::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dropdown-resultados::-webkit-scrollbar-track,
+.dropdown-productos::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.dropdown-resultados::-webkit-scrollbar-thumb,
+.dropdown-productos::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.6);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.dropdown-resultados::-webkit-scrollbar-thumb:hover,
+.dropdown-productos::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.8);
+}
+
+
+/* Z-index para evitar superposición */
+.seccion-busqueda-combinada {
+    position: relative;
+    z-index: 100;
+}
+
+.productos-pedido {
+    position: relative;
+    z-index: 10;
+}
+
+/* Glass card */
+.seccion-busqueda-combinada .glass-card {
+    width: 100%;
+    max-width: none !important;
+    padding: 16px;
+    background: rgba(30, 58, 138, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+}
+
+/* Animaciones */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes recordPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    50% { 
+        transform: scale(1.05); 
+        box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+    }
+}
+
+
+/* ============================================
+   RESPONSIVE - MÓVIL (768px) - CONSOLIDADO
+   ============================================ */
+
 @media (max-width: 768px) {
+    /* HEADER */
     .header-content {
         flex-wrap: nowrap;
-        gap: 8px;
+        gap: 6px;
+        padding: 10px 12px;
     }
     
     .header-left {
-        gap: 8px;
+        gap: 6px;
         min-width: 0;
     }
     
@@ -1260,43 +2116,237 @@ body {
         display: none;
     }
     
+    /* HEADER CENTER - FIX SOLAPAMIENTO */
     .header-center {
+        flex-direction: column;
+        gap: 4px;
+        align-items: stretch;
         order: unset;
         flex: unset;
         margin-top: 0;
-        gap: 4px;
+        width: 100%;
     }
     
     .btn-ubicacion {
-        padding: 4px 8px;
+        width: 100%;
+        justify-content: center;
+        padding: 6px 8px;
         font-size: 10px;
     }
     
+    /* CHIP CLIENTE */
     .chip-cliente {
-        max-width: 150px;
-        padding: 4px 8px;
+        width: 100%;
+        max-width: none;
+        padding: 6px 10px;
     }
     
     .chip-nombre {
-        font-size: 10px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 11px;
+        max-width: none;
+        flex: 1;
     }
     
     .chip-tipo {
         font-size: 9px;
+        padding: 2px 6px;
     }
     
+    .chip-close {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .chip-close svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    /* STATS */
     .stats-compactas {
-        display: none;
+        display: flex !important;
+        flex-direction: row;
+        gap: 8px;
+    }
+    
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+    
+    .stat-valor {
+        font-size: 13px;
+        font-weight: 700;
+        color: #60a5fa;
+        margin: 0;
+    }
+    
+    .stat-label {
+        font-size: 9px;
+        color: #bfdbfe;
+        margin: 0;
     }
     
     .header-right {
         min-width: auto;
     }
     
+    /* BÚSQUEDA */
+    .input-compacto {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+    
+    .btn-mic-compacto {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .seccion-busqueda-combinada .glass-card {
+        padding: 12px;
+    }
+    
+    /* TOAST */
+    .toast-container {
+        top: 70px;
+        right: 12px;
+        left: 12px;
+        max-width: none;
+    }
+    
+    .toast {
+        min-width: auto;
+    }
+    
+    /* FORMULARIOS */
     .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    /* CONTAINER */
+    .container-main {
+        padding: 12px;
+    }
+}
+
+/* ============================================
+   ESTADISTICAS : MODAL DE PEDIDOS
+   ============================================ */
+/* Modal Pedidos */
+.modal-large {
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.stats-resumen {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-numero {
+    font-size: 32px;
+    font-weight: 700;
+    color: #60a5fa;
+    margin-bottom: 8px;
+}
+
+.stat-titulo {
+    font-size: 14px;
+    color: #bfdbfe;
+}
+
+.lista-pedidos-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pedido-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.pedido-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.pedido-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pedido-numero {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.pedido-estado {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.estado-pendiente_aprobacion { background: #fbbf24; color: #78350f; }
+.estado-aprobado { background: #10b981; color: #064e3b; }
+.estado-rechazado { background: #ef4444; color: #7f1d1d; }
+.estado-en_preparacion { background: #3b82f6; color: #1e3a8a; }
+
+.pedido-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pedido-dato {
+    font-size: 13px;
+    color: #bfdbfe;
+}
+
+.pedido-dato strong {
+    color: #ffffff;
+}
+
+.pedido-total {
+    font-size: 20px;
+    font-weight: 700;
+    color: #22c55e;
+    text-align: right;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #93c5fd;
+}
+
+@media (max-width: 768px) {
+    .stats-resumen {
+        grid-template-columns: 1fr;
+    }
+    
+    .pedido-info {
         grid-template-columns: 1fr;
     }
 }
