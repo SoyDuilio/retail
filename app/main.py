@@ -20,6 +20,8 @@ from sqlalchemy.sql import text
 from google.cloud import speech
 from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
+from app.apis.vfp import rutas_vfp
+from app.routers.admin import panel_sync
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -104,9 +106,21 @@ from crud.crud_client import crud_cliente
 
 # Model imports
 # Reemplazar tus importaciones actuales por:
-from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel, CategoriaModel
+from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel, CategoriaModel, CalificacionModel
 
 from contextlib import asynccontextmanager
+
+# ============================================
+# PARA LAS ESTADÍSTICAS
+# ============================================
+#from app.routers import auth, utils
+#from app.routers.vendedor import operaciones as vendedor_ops
+from app.routers.vendedor import estadisticas as vendedor_stats
+from app.routers.vendedor import estadisticas as vendedor_estadisticas
+from app.routers.evaluador import evaluaciones
+from app.routers.evaluador import websocket as evaluador_ws
+#from app.routers.compartido import clientes, productos, pedidos
+from api.v1 import rutas_pedidos
 
 # Función auxiliar para obtener la hora actual en UTC
 def get_utc_now():
@@ -223,6 +237,20 @@ templates = Jinja2Templates(directory="templates")
 security = HTTPBearer()
 manager = ConnectionManager()
 
+
+# ==================
+# ROUTERS
+# ==================
+#app.include_router(auth.router)
+#app.include_router(vendedor_ops.router)
+app.include_router(vendedor_stats.router)
+app.include_router(vendedor_estadisticas.router)
+#app.include_router(clientes.router)
+app.include_router(rutas_pedidos.router)
+app.include_router(evaluaciones.router)
+app.include_router(evaluador_ws.router)
+app.include_router(rutas_vfp.router)
+app.include_router(panel_sync.router)
 
 # =============================================
 # FUNCIONES AUXILIARES  
