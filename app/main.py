@@ -1218,14 +1218,15 @@ async def dashboard_evaluador(evaluador_id: int):
         "evaluador_id": evaluador_id
     })
 
+"""
 @app.get("/supervisor/dashboard/{supervisor_id}", response_class=HTMLResponse)
 async def dashboard_supervisor(supervisor_id: int):
-    """Dashboard para supervisores"""
-    return templates.TemplateResponse("supervisor_dashboard.html", {
+    ""Dashboard para supervisores""
+    return templates.TemplateResponse("supervisor/supervisor.html", {
         "request": {},
         "supervisor_id": supervisor_id
     })
-
+"""
 @app.get("/ventas/clientes/{cliente_id}", response_class=HTMLResponse)
 async def portal_cliente(cliente_id: int):
     """Portal para clientes/bodegueros"""
