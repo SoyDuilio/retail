@@ -102,7 +102,7 @@ async def crear_pedido(
             tipo_cliente_id = item.override_tipo_cliente_id or cliente.tipo_cliente_id
             
             precio_query = db.execute(
-                text("SELECT precio FROM precios WHERE producto_id = :pid AND tipo_cliente_id = :tid"),
+                text("SELECT precio FROM precios_cliente WHERE producto_id = :pid AND tipo_cliente_id = :tid"),
                 {"pid": item.producto_id, "tid": tipo_cliente_id}
             ).first()
             
@@ -159,4 +159,5 @@ async def crear_pedido(
     except Exception as e:
         db.rollback()
         print(f"❌ Error: {e}")
+
         raise HTTPException(status_code=500, detail=str(e))
