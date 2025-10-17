@@ -19,7 +19,7 @@ class MensajeBase(BaseModel):
     tipo_mensaje: TipoMensaje
     titulo: str = Field(..., max_length=200)
     contenido: str
-    pedido_id: Optional[uuid.UUID] = None
+    pedido_id: Optional[int] = None
     datos_adicionales: Optional[Dict[str, Any]] = None
     prioridad: str = Field(default="normal")  # normal, high, urgent
     sonido: bool = True
@@ -86,7 +86,7 @@ class NotificacionResponse(BaseModel):
 # =============================================
 
 class ConversacionVozBase(BaseModel):
-    pedido_id: Optional[uuid.UUID] = None
+    pedido_id: Optional[int] = None
     vendedor_id: int
     cliente_id: int
     metodo_transcripcion: str = Field(default="web_speech_api")
@@ -271,7 +271,7 @@ class FiltrosMensajes(BaseModel):
     leido: Optional[bool] = None
     fecha_desde: Optional[datetime] = None
     fecha_hasta: Optional[datetime] = None
-    pedido_id: Optional[uuid.UUID] = None
+    pedido_id: Optional[int] = None
     buscar: Optional[str] = None
     prioridad: Optional[str] = None
     page: int = Field(default=1, ge=1)

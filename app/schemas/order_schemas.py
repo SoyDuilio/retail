@@ -46,7 +46,7 @@ class PedidoItemUpdate(BaseModel):
 
 class PedidoItem(BaseModel): ### CAMBIO 3: Schema de lectura completo para el item ###
     id: int
-    pedido_id: uuid.UUID
+    pedido_id: int
     producto_id: int
     cantidad: int
     precio_unitario: Decimal
@@ -89,7 +89,7 @@ class PedidoUpdate(BaseModel):
     items: Optional[List[PedidoItemUpdate]] = None
 
 class Pedido(BaseModel): ### CAMBIO 4: Schema de lectura completo para el pedido ###
-    id: uuid.UUID
+    id: int
     numero_pedido: str
     vendedor_id: int  # Añadido para mostrar quién creó el pedido
     cliente_id: int
@@ -118,7 +118,7 @@ class Pedido(BaseModel): ### CAMBIO 4: Schema de lectura completo para el pedido
 # =============================================
 
 class CalificacionBase(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     evaluador_id: Optional[int] = None
     supervisor_id: Optional[int] = None
     estado: EstadoPedido = EstadoPedido.PENDIENTE
@@ -167,7 +167,7 @@ class Calificacion(CalificacionBase):
 
 class KDSPedido(BaseModel):
     """Modelo para el Kitchen Display System de evaluadores"""
-    pedido_id: uuid.UUID
+    pedido_id: int
     numero_pedido: str
     fecha: date
     hora: time
@@ -215,7 +215,7 @@ class KDSStats(BaseModel):
 
 class PedidoCompleto(BaseModel):
     """Vista completa del pedido con toda la información"""
-    pedido_id: uuid.UUID
+    pedido_id: int
     numero_pedido: str
     fecha: date
     hora: time
@@ -240,7 +240,7 @@ class PedidoCompleto(BaseModel):
 
 class PedidoResumen(BaseModel):
     """Resumen de pedido para listas"""
-    id: uuid.UUID
+    id: int
     numero_pedido: str
     fecha: date
     cliente_nombre: str
@@ -337,7 +337,7 @@ class ReporteVentas(BaseModel):
 
 class NotificacionPedido(BaseModel):
     tipo: str  # pedido_nuevo, pedido_aprobado, pedido_rechazado
-    pedido_id: uuid.UUID
+    pedido_id: int
     numero_pedido: str
     destinatario_id: int
     destinatario_tipo: str  # vendedor, evaluador, supervisor, cliente
@@ -350,7 +350,7 @@ class NotificacionPedido(BaseModel):
 class RespuestaPedido(BaseModel):
     """Respuesta estándar para operaciones con pedidos"""
     success: bool
-    pedido_id: Optional[uuid.UUID] = None
+    pedido_id: Optional[int] = None
     numero_pedido: Optional[str] = None
     message: str
     data: Optional[dict] = None
@@ -360,12 +360,12 @@ class RespuestaPedido(BaseModel):
 # =============================================
 
 class IniciarEvaluacion(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     evaluador_id: int
     tiempo_inicio: datetime = Field(default_factory=datetime.now)
 
 class FinalizarEvaluacion(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     estado: EstadoPedido
     monto_aprobado: Decimal = Field(..., ge=0)
     observaciones: Optional[str] = None
@@ -373,13 +373,13 @@ class FinalizarEvaluacion(BaseModel):
 
 class EvaluacionRapida(BaseModel):
     """Para evaluaciones express de montos pequeños"""
-    pedido_id: uuid.UUID
+    pedido_id: int
     aprobado: bool
     monto_aprobado: Optional[Decimal] = None
     observaciones: Optional[str] = None
 
 class EscalarSupervisor(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     motivo: str = Field(..., min_length=10)
     observaciones_evaluador: str
     supervisor_sugerido: Optional[int] = None
@@ -427,7 +427,7 @@ class PedidoVFP(BaseModel):
     fecha_sync: Optional[datetime] = None
 
 class SincronizarPedido(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     exportar_a_vfp: bool = True
     actualizar_stock: bool = True
     generar_factura: bool = False
@@ -470,7 +470,7 @@ class ConfiguracionPedidos(BaseModel):
 # =============================================
 
 class AuditoriaPedido(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     accion: str  # creado, modificado, evaluado, aprobado, rechazado, cancelado
     usuario_id: int
     usuario_tipo: str
@@ -481,7 +481,7 @@ class AuditoriaPedido(BaseModel):
     ip_address: Optional[str] = None
 
 class TrazabilidadPedido(BaseModel):
-    pedido_id: uuid.UUID
+    pedido_id: int
     historial: List[AuditoriaPedido]
     estado_actual: EstadoPedido
     tiempo_total_proceso: Optional[int] = None  # minutos desde creación hasta resolución
