@@ -57,7 +57,7 @@ class MensajeModel(Base):
     titulo = Column(String(200), nullable=False)
     contenido = Column(Text, nullable=False)
     datos_adicionales = Column(Text)  # JSON con datos extra
-    pedido_id = Column(UUID(as_uuid=True), ForeignKey("pedidos.id"), index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), index=True)
     prioridad = Column(String(10), default="normal", index=True)  # normal, high, urgent
     sonido = Column(Boolean, default=True)
     vibrar = Column(Boolean, default=True)
@@ -626,7 +626,7 @@ class ConversacionVozModel(Base):
     __tablename__ = "conversaciones_voz"
     
     id = Column(Integer, primary_key=True, index=True)
-    pedido_id = Column(UUID(as_uuid=True), ForeignKey("pedidos.id"), index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), index=True)
     vendedor_id = Column(Integer, ForeignKey("vendedores.vendedor_id"), nullable=False, index=True)
     cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False, index=True)
     

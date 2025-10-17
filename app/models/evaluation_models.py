@@ -10,7 +10,7 @@ class CalificacionModel(Base):
     __tablename__ = "calificaciones"
     
     id = Column(Integer, primary_key=True, index=True)
-    pedido_id = Column(UUID(as_uuid=True), ForeignKey("pedidos.id"), unique=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), unique=True)
     estado = Column(SQLEnum(EstadoPedidoEnum), default=EstadoPedidoEnum.PENDIENTE)
     observaciones = Column(Text)
     created_at = Column(DateTime, default=get_utc_now)
