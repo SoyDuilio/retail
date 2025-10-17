@@ -377,13 +377,13 @@
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(loginData)
+                        body: JSON.stringify(loginData)  // ✅ CORREGIDO: usar loginData
                     });
 
                     const result = await response.json();
 
                     if (result.success) {
-                        // Guardar token
+                        // ✅ GUARDAR TOKEN EN LOCALSTORAGE
                         if (result.token) {
                             localStorage.setItem('auth_token', result.token);
                             localStorage.setItem('user_data', JSON.stringify({
@@ -400,12 +400,19 @@
                             if (result.user_info && result.user_info.redirect_url) {
                                 window.location.href = result.user_info.redirect_url;
                             } else {
-                                window.location.href = `/vendedor/dashboard/${result.usuario_id}`;
+                                // Fallback genérico por tipo de usuario
+                                const redirects = {
+                                    'vendedor': `/vendedor/ventas-externas/${result.usuario_id}`,
+                                    'evaluador': `/evaluador/dashboard/${result.usuario_id}`,
+                                    'supervisor': `/supervisor/dashboard/${result.usuario_id}`,
+                                    'cliente': `/cliente/dashboard/${result.usuario_id}`
+                                };
+                                window.location.href = redirects[result.usuario_tipo] || '/';
                             }
                         }, 1000);
 
                     } else {
-                        this.showMessage(result.mensaje || 'Error en el login', 'error');
+                        this.showMessage(result.mensaje || result.detail || 'Error en el login', 'error');
                     }
 
                 } catch (error) {
