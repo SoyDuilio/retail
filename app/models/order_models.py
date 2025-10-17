@@ -210,7 +210,7 @@ class AuditoriaPedidoModel(Base):
     __tablename__ = "auditoria_pedidos"
     
     id = Column(Integer, primary_key=True, index=True)
-    pedido_id = Column(UUID(as_uuid=True), ForeignKey("pedidos.id", ondelete="CASCADE"), nullable=False, index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id", ondelete="CASCADE"))
     accion = Column(String(50), nullable=False, index=True)
     usuario_id = Column(Integer, nullable=False)
     usuario_tipo = Column(String(20), nullable=False)
