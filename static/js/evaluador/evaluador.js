@@ -670,7 +670,7 @@ function actualizarPedidos() {
 function logout() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
-    window.location.href = '/login';
+    window.location.href = '/';
 }
 
 // Cerrar modal al hacer clic fuera
