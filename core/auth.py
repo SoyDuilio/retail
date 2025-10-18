@@ -329,11 +329,13 @@ async def get_current_user(
         return user_data
         
     except Exception as e:
-        print(f"❌ Error decodificando token: {str(e)}")
+        import traceback
+        print(f"❌ Error decodificando token: {type(e).__name__}: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido",
-            headers={"WWW-Authenticate": "Bearer"}
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido",
+                headers={"WWW-Authenticate": "Bearer"}
         )
 
 async def get_current_vendedor(
