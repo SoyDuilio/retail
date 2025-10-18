@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Vendedor - Sistema Distribución</title>
     <link rel="stylesheet" href="/static/css/vendedor/ventas_externas.css?v=5">
+    <link rel="stylesheet" href="/static/css/vendedor/modal_nuevo_cliente.css">
 </head>
 <body>
     <!-- Header sticky con información del vendedor y pedido -->
@@ -88,7 +89,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
                                 </svg>
                             </button>
-                            <button class="btn-nuevo-cliente" onclick="abrirModalNuevoCliente()">
+                            <button type="button" class="btn-nuevo-cliente" id="btnNuevoCliente">
                                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -233,65 +234,414 @@
     </div>
 
     <!-- Modal Nuevo Cliente -->
-    <div class="modal-overlay hidden" id="modalNuevoCliente">
-        <div class="modal-medium">
-            <div class="modal-header">
-                <h3>Registrar Nueva Bodega</h3>
-                <button class="btn-close-modal" onclick="cerrarModal('modalNuevoCliente')">
-                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="formNuevoCliente" class="form-modal">
-                    <div class="form-group">
-                        <label>RUC</label>
-                        <div class="input-with-validation">
-                            <input type="text" id="nuevoRuc" maxlength="11" placeholder="20123456789" />
-                            <div class="spinner-small hidden" id="validandoRuc"></div>
-                        </div>
-                        <div class="validation-message" id="resultadoValidacionRuc"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Razón Social</label>
-                        <input type="text" id="nuevaRazonSocial" placeholder="Se llenará automáticamente" readonly />
-                    </div>
-                    <div class="form-group">
-                        <label>Nombre Comercial</label>
-                        <input type="text" id="nuevoNombreComercial" placeholder="Bodega San Martín" />
-                    </div>
-                    <div class="form-group">
-                        <label>Dirección Completa</label>
-                        <input type="text" id="nuevaDireccion" placeholder="Jr. Los Rosales 123" />
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Distrito</label>
-                            <input type="text" id="nuevoDistrito" placeholder="Lima" />
-                        </div>
-                        <div class="form-group">
-                            <label>Provincia</label>
-                            <input type="text" id="nuevaProvincia" placeholder="Lima" />
-                        </div>
-                        <div class="form-group">
-                            <label>Región</label>
-                            <input type="text" id="nuevaRegion" placeholder="Lima" />
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono/WhatsApp</label>
-                        <input type="tel" id="nuevoTelefono" placeholder="987654321" maxlength="9" />
-                    </div>
-                    <div class="form-group">
-                        <label>Persona que hace el pedido</label>
-                        <input type="text" id="personaPedido" placeholder="Juan Pérez (encargado)" />
-                    </div>
-                    <button type="button" class="btn-primary" onclick="registrarNuevoCliente()">
-                        Registrar Bodega
+    <!-- ========== MODAL NUEVO CLIENTE ========== -->
+    <!-- ========== MODAL NUEVO CLIENTE - DISEÑO CARDS FLOTANTES ========== -->
+    <div id="modalNuevoCliente" class="modal-overlay">
+        <div class="modal-container">
+            
+            <!-- Header con Progress -->
+            <div class="modal-header-modern">
+                <div class="header-content">
+                    <h2 class="modal-title">
+                        <span class="title-icon">✨</span>
+                        Registrar Nuevo Cliente
+                    </h2>
+                    <button type="button" class="btn-close-modern" id="btnCerrarModalCliente">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
-                </form>
+                </div>
+                
+                <!-- Progress Steps -->
+                <div class="progress-steps">
+                    <div class="step-item active" data-step="1">
+                        <div class="step-circle">
+                            <span class="step-number">1</span>
+                            <svg class="step-check" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <span class="step-label">Validación</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-item" data-step="2">
+                        <div class="step-circle">
+                            <span class="step-number">2</span>
+                            <svg class="step-check" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <span class="step-label">Ubicación</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-item" data-step="3">
+                        <div class="step-circle">
+                            <span class="step-number">3</span>
+                            <svg class="step-check" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <span class="step-label">Condiciones</span>
+                    </div>
+                </div>
             </div>
+
+            <!-- Form Container -->
+            <form id="formNuevoCliente">
+                <div class="modal-body-modern">
+                    
+                    <!-- ========== PASO 1: VALIDACIÓN ========== -->
+                    <div class="wizard-card active" data-step="1">
+                        <div class="card-header">
+                            <div class="card-icon">🔍</div>
+                            <div class="card-title-group">
+                                <h3 class="card-title">Validar Identidad</h3>
+                                <p class="card-subtitle">Ingresa RUC de la empresa y DNI del titular</p>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- RUC -->
+                            <div class="form-group-modern">
+                                <label class="label-modern">
+                                    <span class="label-text">RUC de la Empresa</span>
+                                    <span class="label-required">*</span>
+                                </label>
+                                <div class="input-group-modern">
+                                    <div class="input-icon">🏢</div>
+                                    <input 
+                                        type="text" 
+                                        id="numero_ruc" 
+                                        class="input-modern" 
+                                        placeholder="20123456789"
+                                        maxlength="11"
+                                        inputmode="numeric"
+                                        autocomplete="off"
+                                    >
+                                    <button type="button" class="btn-validate" id="btnValidarRuc">
+                                        <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Validar
+                                    </button>
+                                </div>
+                                <div class="input-feedback" id="feedbackRuc"></div>
+                            </div>
+
+                            <!-- Datos SUNAT (ocultos inicialmente) -->
+                            <div class="datos-validados hidden" id="datosRuc">
+                                <div class="alert-success">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>RUC validado correctamente con SUNAT</span>
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Razón Social</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="razon_social" 
+                                        class="input-modern input-readonly" 
+                                        readonly
+                                    >
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Nombre Comercial</span>
+                                        <span class="label-hint">Puedes editarlo</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="nombre_comercial" 
+                                        class="input-modern" 
+                                        placeholder="Ej: Bodega San Martín"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- DNI Titular -->
+                            <div class="form-group-modern" style="margin-top: 24px;">
+                                <label class="label-modern">
+                                    <span class="label-text">DNI del Titular/Dueño</span>
+                                    <span class="label-required">*</span>
+                                </label>
+                                <div class="input-group-modern">
+                                    <div class="input-icon">👤</div>
+                                    <input 
+                                        type="text" 
+                                        id="numero_dni" 
+                                        class="input-modern" 
+                                        placeholder="12345678"
+                                        maxlength="8"
+                                        inputmode="numeric"
+                                        autocomplete="off"
+                                    >
+                                    <button type="button" class="btn-validate" id="btnValidarDni">
+                                        <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Validar
+                                    </button>
+                                </div>
+                                <div class="input-feedback" id="feedbackDni"></div>
+                            </div>
+
+                            <!-- Datos RENIEC (ocultos inicialmente) -->
+                            <div class="datos-validados hidden" id="datosDni">
+                                <div class="alert-success">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>DNI validado correctamente con RENIEC</span>
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Nombres Completos</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="nombres_titular" 
+                                        class="input-modern input-readonly" 
+                                        readonly
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== PASO 2: UBICACIÓN ========== -->
+                    <div class="wizard-card" data-step="2">
+                        <div class="card-header">
+                            <div class="card-icon">📍</div>
+                            <div class="card-title-group">
+                                <h3 class="card-title">Contacto y Ubicación</h3>
+                                <p class="card-subtitle">Datos para contacto y entrega de pedidos</p>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="form-row-2">
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Teléfono / WhatsApp</span>
+                                        <span class="label-required">*</span>
+                                    </label>
+                                    <div class="input-with-icon">
+                                        <div class="input-icon">📱</div>
+                                        <input 
+                                            type="text" 
+                                            id="telefono" 
+                                            class="input-modern" 
+                                            placeholder="987654321"
+                                            maxlength="9"
+                                            inputmode="numeric"
+                                        >
+                                    </div>
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Email</span>
+                                        <span class="label-hint">Opcional</span>
+                                    </label>
+                                    <div class="input-with-icon">
+                                        <div class="input-icon">✉️</div>
+                                        <input 
+                                            type="email" 
+                                            id="email" 
+                                            class="input-modern" 
+                                            placeholder="correo@ejemplo.com"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group-modern">
+                                <label class="label-modern">
+                                    <span class="label-text">Dirección Completa</span>
+                                    <span class="label-required">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="direccion" 
+                                    class="input-modern" 
+                                    placeholder="Jr. Los Rosales 123"
+                                >
+                            </div>
+
+                            <div class="form-group-modern">
+                                <label class="label-modern">
+                                    <span class="label-text">Referencia</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="referencia" 
+                                    class="input-modern" 
+                                    placeholder="A dos cuadras del mercado, frente al parque"
+                                >
+                                <small class="input-hint-bottom">💡 Ayuda al vendedor a encontrar el lugar</small>
+                            </div>
+
+                            <div class="form-row-3">
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Departamento</span>
+                                        <span class="label-required">*</span>
+                                    </label>
+                                    <select id="departamento" class="select-modern">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Lima">Lima</option>
+                                        <option value="Arequipa">Arequipa</option>
+                                        <option value="Cusco">Cusco</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Provincia</span>
+                                        <span class="label-required">*</span>
+                                    </label>
+                                    <select id="provincia" class="select-modern" disabled>
+                                        <option value="">Seleccionar</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group-modern">
+                                    <label class="label-modern">
+                                        <span class="label-text">Distrito</span>
+                                        <span class="label-required">*</span>
+                                    </label>
+                                    <select id="distrito" class="select-modern" disabled>
+                                        <option value="">Seleccionar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== PASO 3: TIPO DE CLIENTE Y RESUMEN ========== -->
+                    <div class="wizard-card" data-step="3">
+                        <div class="card-header">
+                            <div class="card-icon">🏪</div>
+                            <div class="card-title-group">
+                                <h3 class="card-title">Clasificación del Cliente</h3>
+                                <p class="card-subtitle">Selecciona el tipo de establecimiento</p>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="form-group-modern">
+                                <label class="label-modern">
+                                    <span class="label-text">Tipo de Cliente</span>
+                                    <span class="label-required">*</span>
+                                </label>
+                                <select id="tipo_cliente" class="select-modern">
+                                    <option value="">Seleccionar tipo de cliente</option>
+                                    <option value="1">Bodega</option>
+                                    <option value="2">Puesto de Mercado</option>
+                                    <option value="3">Restaurante</option>
+                                    <option value="4">Distribuidor</option>
+                                    <option value="5">Minimarket</option>
+                                    <option value="6">Otros</option>
+                                </select>
+                                <small class="input-hint-bottom">💡 Esta clasificación determina las políticas comerciales aplicables</small>
+                            </div>
+
+                            <!-- Información de Política (solo informativa) -->
+                            <div class="info-politica hidden" id="infoPolitica">
+                                <div class="alert-info">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Política comercial aplicable:</strong>
+                                        <div class="politica-detalles">
+                                            <span>• Límite de crédito máximo: <strong id="limiteCreditoMax">-</strong></span>
+                                            <span>• Días de crédito máximo: <strong id="diasCreditoMax">-</strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Resumen Final -->
+                            <div class="resumen-card">
+                                <h4 class="resumen-titulo">📋 Resumen del Registro</h4>
+                                <div class="resumen-grid">
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">RUC:</span>
+                                        <span class="resumen-value" id="resumenRuc">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Razón Social:</span>
+                                        <span class="resumen-value" id="resumenRazon">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Nombre Comercial:</span>
+                                        <span class="resumen-value" id="resumenNombre">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Titular:</span>
+                                        <span class="resumen-value" id="resumenTitular">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Teléfono:</span>
+                                        <span class="resumen-value" id="resumenTelefono">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Dirección:</span>
+                                        <span class="resumen-value" id="resumenDireccion">-</span>
+                                    </div>
+                                    <div class="resumen-item">
+                                        <span class="resumen-label">Tipo de Cliente:</span>
+                                        <span class="resumen-value" id="resumenTipoCliente">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer con Botones -->
+                <div class="modal-footer-modern">
+                    <button type="button" class="btn-modern btn-cancel" id="btnCancelarRegistro">
+                        <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Cancelar
+                    </button>
+
+                    <div class="btn-group-right">
+                        <button type="button" class="btn-modern btn-secondary" id="btnAnterior" style="display: none;">
+                            <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            Anterior
+                        </button>
+
+                        <button type="button" class="btn-modern btn-primary" id="btnSiguiente">
+                            Siguiente
+                            <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+
+                        <button type="submit" class="btn-modern btn-success" id="btnGuardarCliente" style="display: none;">
+                            <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Registrar Cliente
+                        </button>
+                    </div>
+                </div>
+            </form>
+
         </div>
     </div>
 
@@ -370,6 +720,10 @@
         </div>
     </div>
 
-    <script src="/static/js/vendedor/ventas_externas.js"></script>
+    <!-- TTS Client -->
+    <script src="{{ url_for('static', path='/js/tts_client.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/vendedor/modal_nuevo_cliente.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/vendedor/ventas_externas.js') }}"></script>
+    
 </body>
 </html>
