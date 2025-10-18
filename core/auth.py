@@ -79,10 +79,10 @@ def decode_access_token(token: str) -> Dict[str, Any]:
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expirado",
+            detail="Token expirado",  # ← Mensaje simple
             headers={"WWW-Authenticate": "Bearer"}
         )
-    except jwt.JWTError:
+    except jwt.JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido", 
@@ -297,45 +297,37 @@ async def get_current_user(
 ) -> Dict[str, Any]:
     """Dependency para obtener usuario actual autenticado"""
     
-    print(f"=== DEBUG get_current_user ===")
-    print(f"credentials: {credentials}")
-    print(f"token: {credentials.credentials[:50] if credentials else 'NO TOKEN'}...")
-    
     if not credentials:
-        print("❌ No hay credentials")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autorización requerido",
             headers={"WWW-Authenticate": "Bearer"}
         )
     
-    # OPCIÓN 1: Solo decodificar el JWT sin verificar sesiones
     try:
         payload = decode_access_token(credentials.credentials)
-        print(f"Payload decodificado: {payload}")
         
-        # Adaptar los nombres de campos de tu JWT
         user_data = {
-            "user_id": payload.get("id"),  # Tu JWT usa "id" 
-            "tipo_usuario": payload.get("tipo"),  # Tu JWT usa "tipo"
+            "user_id": payload.get("id"),
+            "tipo_usuario": payload.get("tipo"),
             "nombre": payload.get("nombre"),
             "dni": payload.get("dni"),
-            "session_id": payload.get("jti")  # JWT ID como session_id
+            "session_id": payload.get("jti")
         }
-        
-        print(f"✅ User data adaptado: {user_data}")
-        print(f"==============================")
         
         return user_data
         
+    except HTTPException as e:
+        # Si es token expirado, no imprimir todo el traceback
+        if "expired" in str(e.detail).lower():
+            print(f"⏰ Token expirado para usuario (esto es normal)")
+        raise e
     except Exception as e:
-        import traceback
-        print(f"❌ Error decodificando token: {type(e).__name__}: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"❌ Error inesperado en auth: {type(e).__name__}: {str(e)}")
         raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido",
-                headers={"WWW-Authenticate": "Bearer"}
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
 async def get_current_vendedor(
