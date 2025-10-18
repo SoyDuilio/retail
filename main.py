@@ -20,6 +20,10 @@ from sqlalchemy.sql import text
 from google.cloud import speech
 from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
+from app.apis.vfp import rutas_vfp
+from app.routers.admin import panel_sync 
+from app.routers import clientes
+from api.endpoints import clientes
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -107,6 +111,18 @@ from crud.crud_client import crud_cliente
 from app.models import VendedorModel, ProductoModel, ClienteModel, EvaluadorModel, SupervisorModel, TipoClienteModel, CategoriaModel, CalificacionModel
 
 from contextlib import asynccontextmanager
+
+# ============================================
+# PARA LAS ESTADÍSTICAS
+# ============================================
+#from app.routers import auth, utils
+#from app.routers.vendedor import operaciones as vendedor_ops
+from app.routers.vendedor import estadisticas as vendedor_stats
+from app.routers.vendedor import estadisticas as vendedor_estadisticas
+from app.routers.evaluador import evaluaciones
+from app.routers.evaluador import websocket as evaluador_ws
+#from app.routers.compartido import clientes, productos, pedidos
+from api.v1 import rutas_pedidos
 
 # Función auxiliar para obtener la hora actual en UTC
 def get_utc_now():
@@ -224,6 +240,20 @@ security = HTTPBearer()
 manager = ConnectionManager()
 
 
+# ==================
+# ROUTERS
+# ==================
+#app.include_router(auth.router)
+#app.include_router(vendedor_ops.router)
+app.include_router(vendedor_stats.router)
+app.include_router(vendedor_estadisticas.router)
+app.include_router(rutas_pedidos.router)
+app.include_router(evaluaciones.router)
+app.include_router(evaluador_ws.router)
+app.include_router(rutas_vfp.router)
+app.include_router(panel_sync.router)
+app.include_router(clientes.router)
+
 # =============================================
 # FUNCIONES AUXILIARES  
 # =============================================
@@ -320,6 +350,52 @@ async def validar_dni(dni: str):
             detail="Error interno al procesar la solicitud"
         )
 
+
+from typing import Dict, Any
+
+@app.post("/api/vendedor/ubicacion")
+async def guardar_ubicacion(
+    ubicacion: Dict[str, Any],
+    current_vendedor: VendedorModel = Depends(get_current_vendedor),
+    db: Session = Depends(get_db)
+):
+    """
+    Guarda la ubicación actual del vendedor.
+    Puede usarse para registro de ruta o validación de visitas.
+    """
+    try:
+        latitud = ubicacion.get('latitud')
+        longitud = ubicacion.get('longitud')
+        precision = ubicacion.get('precision')
+        timestamp = ubicacion.get('timestamp')
+        
+        print(f"📍 Ubicación vendedor {current_vendedor.vendedor_id}: {latitud}, {longitud}")
+        
+        # Si tienes una tabla de ubicaciones, guárdala aquí
+        # Ejemplo:
+        # nueva_ubicacion = UbicacionVendedorModel(
+        #     vendedor_id=current_vendedor.vendedor_id,
+        #     latitud=latitud,
+        #     longitud=longitud,
+        #     precision=precision,
+        #     timestamp=timestamp
+        # )
+        # db.add(nueva_ubicacion)
+        # db.commit()
+        
+        return DataResponse(
+            success=True,
+            message="Ubicación registrada correctamente",
+            data={
+                "latitud": latitud,
+                "longitud": longitud,
+                "timestamp": timestamp
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Error guardando ubicación: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================
 # FUNCIONES DE AYUDA PARA PROCESAMIENTO DE PEDIDOS
@@ -1144,14 +1220,15 @@ async def dashboard_evaluador(evaluador_id: int):
         "evaluador_id": evaluador_id
     })
 
+"""
 @app.get("/supervisor/dashboard/{supervisor_id}", response_class=HTMLResponse)
 async def dashboard_supervisor(supervisor_id: int):
-    """Dashboard para supervisores"""
-    return templates.TemplateResponse("supervisor_dashboard.html", {
+    ""Dashboard para supervisores""
+    return templates.TemplateResponse("supervisor/supervisor.html", {
         "request": {},
         "supervisor_id": supervisor_id
     })
-
+"""
 @app.get("/ventas/clientes/{cliente_id}", response_class=HTMLResponse)
 async def portal_cliente(cliente_id: int):
     """Portal para clientes/bodegueros"""
@@ -1501,29 +1578,39 @@ async def buscar_clientes(
     current_vendedor: VendedorModel = Depends(get_current_vendedor),
     db: Session = Depends(get_db)
 ):
-    """Busca clientes por RUC, nombre comercial, razón social o teléfono"""
+    """Busca clientes por RUC, nombre comercial o teléfono"""
     try:
-        termino = f"%{q}%"
+        print(f"🔍 Buscando clientes con: '{q}'")
         
-        # Buscar usando los campos REALES de tu tabla
-        clientes = db.query(ClienteModel).join(
-            TipoClienteModel, ClienteModel.tipo_cliente_id == TipoClienteModel.id
-        ).filter(
+        # Query SIN join para evitar problemas con tipos_cliente
+        clientes = db.query(ClienteModel).filter(
             and_(
                 ClienteModel.activo == True,
                 or_(
-                    ClienteModel.ruc.ilike(termino),
-                    ClienteModel.razon_social.ilike(termino),
-                    ClienteModel.nombre_comercial.ilike(termino),  # CORREGIDO
-                    ClienteModel.telefono.ilike(termino),          # CORREGIDO
-                    ClienteModel.email.ilike(termino)              # AGREGADO
+                    ClienteModel.ruc.ilike(f"%{q}%"),
+                    ClienteModel.nombre_comercial.ilike(f"%{q}%"),
+                    ClienteModel.razon_social.ilike(f"%{q}%"),
+                    ClienteModel.telefono.ilike(f"%{q}%")
                 )
             )
         ).limit(10).all()
         
-        # Serializar con campos reales
+        print(f"📦 Encontrados: {len(clientes)} clientes")
+        
         resultados = []
         for c in clientes:
+            # Manejo seguro de tipo_cliente
+            tipo_nombre = None
+            if c.tipo_cliente_id:
+                try:
+                    tipo_cliente = db.query(TipoClienteModel).filter(
+                        TipoClienteModel.id == c.tipo_cliente_id
+                    ).first()
+                    tipo_nombre = tipo_cliente.nombre if tipo_cliente else "Sin tipo"
+                except Exception as e:
+                    print(f"Error obteniendo tipo_cliente: {e}")
+                    tipo_nombre = "Sin tipo"
+            
             resultados.append({
                 "id": c.id,
                 "codigo_cliente": c.codigo_cliente,
@@ -1531,8 +1618,6 @@ async def buscar_clientes(
                 "razon_social": c.razon_social,
                 "ruc": c.ruc,
                 "telefono": c.telefono,
-                "email": c.email,
-                "direccion": c.direccion_completa,  # CORREGIDO
                 "distrito": c.distrito,
                 "provincia": c.provincia,
                 "departamento": c.departamento,
@@ -1540,9 +1625,9 @@ async def buscar_clientes(
                 "longitud": float(c.longitud) if c.longitud else None,
                 "tipo_cliente_id": c.tipo_cliente_id,
                 "tipo_cliente": {
-                    "id": c.tipo_cliente.id,
-                    "nombre": c.tipo_cliente.nombre
-                } if c.tipo_cliente else None
+                    "id": c.tipo_cliente_id,
+                    "nombre": tipo_nombre or "Sin tipo"
+                }
             })
         
         return DataResponse(
@@ -1552,8 +1637,10 @@ async def buscar_clientes(
         )
         
     except Exception as e:
-        print(f"Error en búsqueda de clientes: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Error en búsqueda de clientes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error en búsqueda: {str(e)}")
 
 class BuscarClienteVozRequest(BaseModel):
     texto: str
@@ -1570,37 +1657,38 @@ async def buscar_productos(
     try:
         print(f"🔍 Buscando productos con: '{q}'")
         
+        # Query sin join con categoría
         productos = db.query(ProductoModel).filter(
             and_(
                 ProductoModel.activo == True,
                 or_(
                     ProductoModel.nombre.ilike(f"%{q}%"),
-                    ProductoModel.codigo_producto.ilike(f"%{q}%"),
-                    #ProductoModel.descripcion.ilike(f"%{q}%")
+                    ProductoModel.codigo_producto.ilike(f"%{q}%")
                 )
             )
         ).limit(20).all()
         
         print(f"📦 Encontrados: {len(productos)} productos")
-        for p in productos:
-            print(f"  • {p.nombre}")
-            print(f"    - Código: {p.codigo_producto}")
-            print(f"    - Descripción: {p.descripcion[:100] if p.descripcion else 'Sin descripción'}")
-            print(f"    - ¿Contiene 'res' en nombre? {('res' in p.nombre.lower())}")
-            print(f"    - ¿Contiene 'res' en código? {('res' in p.codigo_producto.lower())}")
-            print(f"    - ¿Contiene 'res' en descripción? {('res' in (p.descripcion or '').lower())}")
         
         productos_data = []
         for producto in productos:
+            # Manejo seguro de categoría
+            categoria_nombre = None
+            if producto.categoria_id:
+                try:
+                    categoria = db.query(CategoriaModel).filter(
+                        CategoriaModel.categoria_id == producto.categoria_id
+                    ).first()
+                    categoria_nombre = categoria.nombre if categoria else None
+                except Exception as e:
+                    print(f"Error obteniendo categoría: {e}")
+            
             productos_data.append({
                 "id": producto.id,
                 "codigo_producto": producto.codigo_producto,
                 "nombre": producto.nombre,
-                "descripcion": producto.descripcion,
                 "precio_unitario": float(producto.precio_unitario),
-                "precio_mayorista": float(producto.precio_mayorista) if producto.precio_mayorista else None,
-                "precio_distribuidor": float(producto.precio_distribuidor) if producto.precio_distribuidor else None,
-                "categoria": producto.categoria.nombre if producto.categoria else None  # YA PUEDES DESCOMENTAR
+                "categoria": categoria_nombre
             })
         
         return DataResponse(
@@ -2587,15 +2675,4 @@ async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-
-
-
-@app.get("/guia", response_class=HTMLResponse)
-async def guia(request: Request):
-    return templates.TemplateResponse("guia2.html", {"request": request})
-
-
-
-
