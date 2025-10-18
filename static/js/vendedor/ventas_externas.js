@@ -615,17 +615,16 @@ function calcularPorcentajeCoincidencia(distanciaMetros) {
 // BÚSQUEDA DE CLIENTES
 async function buscarCliente(query) {
     try {
-        // Tu endpoint espera el parámetro 'q'
-        const url = `/api/clientes/buscar?q=${encodeURIComponent(query)}`;
+        // Usar el parámetro 'buscar' del nuevo endpoint
+        const url = `/api/clientes/?buscar=${encodeURIComponent(query)}`;
         
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${estadoApp.token}` }
         });
         
         if (response.ok) {
-            const data = await response.json();
-            // Adaptar según la estructura de tu respuesta
-            const clientes = data.clientes || data.data || [data];
+            const clientes = await response.json();
+            // El endpoint ya retorna un array directamente
             mostrarResultadosClientes(clientes);
         } else {
             console.error('Error en búsqueda:', response.status);
