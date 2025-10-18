@@ -90,6 +90,36 @@ const estadoApp = {
     googleRecordingTimeout: null
 };
 
+// Inicializar token desde localStorage
+// ============================================================================
+// INICIALIZACIÓN AL CARGAR LA PÁGINA
+// ============================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Cargar token PRIMERO
+    estadoApp.token = localStorage.getItem('auth_token');
+    
+    // 2. Verificar autenticación
+    if (!estadoApp.token) {
+        console.warn('No hay token de autenticación');
+        window.location.href = '/login';
+        return;
+    }
+    
+    // 3. Inicializar componentes
+    verificarAutenticacion();
+    cargarDatosVendedor();
+    inicializarReconocimientoVoz();
+    configurarEventListeners();
+    
+    // 4. Configurar input de productos
+    const inputProductos = document.getElementById('inputProductos');
+    if (inputProductos) {
+        inputProductos.addEventListener('focus', function() {
+            this.select();
+        });
+    }
+});
+
 function formatPrice(amount) {
     return new Intl.NumberFormat('es-PE', {
         style: 'currency',
@@ -125,39 +155,20 @@ async function announceTotal() {
     }
 }
 
-// Agregar event listener para seleccionar texto al enfocar
-// Inicialización (mantener SOLO esta)
-document.addEventListener('DOMContentLoaded', function() {
-    verificarAutenticacion();
-    cargarDatosVendedor();
-    inicializarReconocimientoVoz();
-    configurarEventListeners();
-    
-    // AGREGAR ESTO:
-    const inputProductos = document.getElementById('inputProductos');
-    if (inputProductos) {
-        inputProductos.addEventListener('focus', function() {
-            this.select();
-        });
-    }
-});
-
 // Verificar autenticación
 function verificarAutenticacion() {
-    // TODO: Verificar correctamente la autenticación cuando sepamos cómo funciona
-    // Temporalmente deshabilitado para poder ver la página
-    
-    /* DESCOMENTAR CUANDO SE ARREGLE:
+    // Leer token si no está cargado
     if (!estadoApp.token) {
-        window.location.href = '/';
-        return;
+        estadoApp.token = localStorage.getItem('auth_token');
     }
-    */
-   
-    // Por ahora solo verificamos si existe, sin redirigir
+    
     if (!estadoApp.token) {
         console.warn('No hay token de autenticación');
+        window.location.href = '/login';
+        return false;
     }
+    
+    return true;
 }
 
 // Cargar datos del vendedor
