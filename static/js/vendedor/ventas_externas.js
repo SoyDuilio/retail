@@ -90,6 +90,41 @@ const estadoApp = {
     googleRecordingTimeout: null
 };
 
+function formatPrice(amount) {
+    return new Intl.NumberFormat('es-PE', {
+        style: 'currency',
+        currency: 'PEN'
+    }).format(amount);
+}
+
+// Función auxiliar para anunciar el total
+async function announceTotal() {
+    const total = estadoApp.pedido.reduce((sum, item) => sum + item.subtotal, 0);
+    
+    // Formatear mensaje para voz
+    const totalRedondeado = Math.round(total * 100) / 100;
+    const soles = Math.floor(totalRedondeado);
+    const centavos = Math.round((totalRedondeado - soles) * 100);
+    
+    let mensaje = `Van ${soles} ${soles === 1 ? 'sol' : 'soles'}`;
+    if (centavos > 0) {
+        mensaje += ` con ${centavos} ${centavos === 1 ? 'centavo' : 'centavos'}`;
+    }
+    
+    // Actualizar visual con efecto
+    const totalElement = document.getElementById('totalPedido');
+    if (totalElement) {
+        totalElement.textContent = formatPrice(total);
+        totalElement.classList.add('pulse');
+        setTimeout(() => totalElement.classList.remove('pulse'), 500);
+    }
+    
+    // Anunciar por voz
+    if (window.ttsClient) {
+        await window.ttsClient.speak(mensaje, { speed: 1.1 });
+    }
+}
+
 // Agregar event listener para seleccionar texto al enfocar
 // Inicialización (mantener SOLO esta)
 document.addEventListener('DOMContentLoaded', function() {
@@ -920,6 +955,7 @@ function actualizarContadorSeleccionados() {
     }
 }
 
+// 1️⃣ En agregarProductosSeleccionados() - AGREGAR AL FINAL
 function agregarProductosSeleccionados() {
     const nuevosProductos = [];
     
@@ -934,26 +970,26 @@ function agregarProductosSeleccionados() {
                 unidad: productoData.unidad || 'unidad',
                 precio_unitario: parseFloat(productoData.precio_unitario),
                 subtotal: parseFloat(productoData.precio_unitario),
-                esNuevo: true // Marca para animación
+                esNuevo: true
             });
         }
     });
     
     if (nuevosProductos.length > 0) {
-        // CORRECCIÓN #2: Agregar al INICIO en lugar del final
         estadoApp.pedido.unshift(...nuevosProductos);
-        
-        // Limpiar selección y actualizar UI
         estadoApp.productosSeleccionados.clear();
         ocultarDropdownProductos();
         mostrarProductosPedido();
         
-        // Notificación Toast
         Toast.success(`${nuevosProductos.length} producto${nuevosProductos.length > 1 ? 's agregados' : ' agregado'} al pedido`);
+        
+        // 🎤 AGREGAR ESTO:
+        announceTotal();
     } else {
         Toast.warning('No hay productos seleccionados');
     }
 }
+
 
 // Eliminar función handleEnterProductos ya que ahora es búsqueda en tiempo real
 function handleEnterProductos(event) {
@@ -1025,21 +1061,23 @@ async function procesarPedidoTexto(texto) {
     }
 }
 
+// 2️⃣ En actualizarItemsDelPedido() - AGREGAR AL FINAL
 function actualizarItemsDelPedido(nuevosProductos) {
     nuevosProductos.forEach(producto => {
         const index = estadoApp.pedido.findIndex(item => item.producto_id === producto.producto_id);
         
         if (index >= 0) {
-            // Actualizar cantidad si ya existe
             estadoApp.pedido[index].cantidad += producto.cantidad;
             estadoApp.pedido[index].subtotal = estadoApp.pedido[index].cantidad * estadoApp.pedido[index].precio_unitario;
         } else {
-            // Agregar nuevo producto
             estadoApp.pedido.push(producto);
         }
     });
     
     mostrarProductosPedido();
+    
+    // 🎤 AGREGAR ESTO:
+    announceTotal();
 }
 
 function mostrarProductosPedido() {
@@ -1111,14 +1149,13 @@ function mostrarProductosPedido() {
 }
 
 
-// Actualizar cantidad escribiendo directamente
+// 4️⃣ En actualizarCantidadDirecta() - AGREGAR
 function actualizarCantidadDirecta(index, valor) {
     const cantidad = parseInt(valor);
     
-    // Validar cantidad
     if (isNaN(cantidad) || cantidad < 1) {
         Toast.warning('La cantidad mínima es 1');
-        mostrarProductosPedido(); // Restaurar valor anterior
+        mostrarProductosPedido();
         return;
     }
     
@@ -1128,16 +1165,19 @@ function actualizarCantidadDirecta(index, valor) {
         return;
     }
     
-    // Actualizar
     const item = estadoApp.pedido[index];
     item.cantidad = cantidad;
     item.subtotal = item.cantidad * item.precio_unitario;
     
     mostrarProductosPedido();
     Toast.success(`Cantidad actualizada: ${cantidad} unidades`);
+    
+    // 🎤 AGREGAR ESTO:
+    announceTotal();
 }
 
 
+// 6️⃣ En actualizarCantidad() - AGREGAR (si la usas)
 function actualizarCantidad(productoId, nuevaCantidad) {
     if (nuevaCantidad < 1) return;
     
@@ -1146,10 +1186,13 @@ function actualizarCantidad(productoId, nuevaCantidad) {
         producto.cantidad = nuevaCantidad;
         producto.subtotal = producto.cantidad * producto.precio_unitario;
         mostrarProductosPedido();
+        
+        // 🎤 AGREGAR ESTO:
+        announceTotal();
     }
 }
 
-// Cambiar cantidad de producto en el pedido
+// 3️⃣ En cambiarCantidad() - MODIFICAR
 function cambiarCantidad(index, delta) {
     const item = estadoApp.pedido[index];
     const nuevaCantidad = item.cantidad + delta;
@@ -1162,17 +1205,29 @@ function cambiarCantidad(index, delta) {
     item.cantidad = nuevaCantidad;
     item.subtotal = item.cantidad * item.precio_unitario;
     mostrarProductosPedido();
+    
+    // 🎤 AGREGAR ESTO:
+    announceTotal();
 }
 
-// Eliminar producto del pedido
+// 5️⃣ En eliminarProducto() - AGREGAR
 function eliminarProducto(index) {
     const producto = estadoApp.pedido[index];
     estadoApp.pedido.splice(index, 1);
     mostrarProductosPedido();
     
-    // Notificación (si tienes Toast, sino usa alert)
     if (typeof Toast !== 'undefined') {
         Toast.info(`${producto.nombre} eliminado del pedido`);
+    }
+    
+    // 🎤 AGREGAR ESTO (solo si aún hay productos)
+    if (estadoApp.pedido.length > 0) {
+        announceTotal();
+    } else {
+        // Anunciar que el carrito está vacío
+        if (window.ttsClient) {
+            window.ttsClient.speak('Carrito vacío', { speed: 1.1 });
+        }
     }
 }
 
