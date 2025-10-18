@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
+
 from app.database import get_db
 from core.auth import get_current_user
-#import crud.crud_client as crud_client
-from crud.crud_client import crud_cliente as crud_client
+from crud.crud_client import crud_cliente
+
 from app.schemas.client_schemas import (
     ClienteCreate,
     ClienteResponse,
@@ -25,11 +26,42 @@ async def crear_nuevo_cliente(
     db: Session = Depends(get_db),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
+    """
+    **Crear un nuevo cliente**
+    
+    Registra un nuevo cliente en el sistema con validación de RUC único.
+    Si se proporcionan datos del titular (DNI y nombres), se crea automáticamente
+    un contacto principal asociado.
+    
+    **Requiere autenticación de usuario**
+    
+    **Validaciones:**
+    - RUC único (11 dígitos)
+    - Teléfono válido (7-15 dígitos)
+    - Email válido (opcional)
+    - Tipo de cliente debe existir
+    
+    **Returns:**
+    - Cliente creado con código generado automáticamente
+    """
     try:
-        db_cliente = crud_cliente.create_with_user(db, obj_in=cliente, usuario_id=current_user["user_id"])
+        db_cliente = crud_cliente.create_with_user(
+            db, 
+            obj_in=cliente, 
+            usuario_id=current_user["user_id"]
+        )
         return db_cliente
+    
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear cliente: {str(e)}"
+        )
 
 
 @router.get("/", response_model=List[ClienteListResponse])
@@ -56,7 +88,7 @@ async def listar_clientes(
     
     **Requiere autenticación**
     """
-    clientes = crud_client.obtener_clientes(
+    clientes = crud_cliente.get_multi_filtered(
         db,
         skip=skip,
         limit=limit,
@@ -80,32 +112,8 @@ async def listar_clientes_select(
     
     **Requiere autenticación**
     """
-    clientes = crud_client.obtener_clientes_activos_simple(db)
+    clientes = crud_cliente.get_activos_simple(db)
     return clientes
-
-
-@router.get("/{cliente_id}", response_model=ClienteResponse)
-async def obtener_cliente(
-    cliente_id: int,
-    db: Session = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(get_current_user)
-):
-    """
-    **Obtener cliente por ID**
-    
-    Retorna información completa de un cliente específico.
-    
-    **Requiere autenticación**
-    """
-    db_cliente = crud_client.obtener_cliente_por_id(db, cliente_id)
-    
-    if not db_cliente:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
-        )
-    
-    return db_cliente
 
 
 @router.get("/ruc/{ruc}", response_model=ClienteResponse)
@@ -121,12 +129,36 @@ async def obtener_cliente_por_ruc(
     
     **Requiere autenticación**
     """
-    db_cliente = crud_client.obtener_cliente_por_ruc(db, ruc)
+    db_cliente = crud_cliente.get_by_ruc(db, ruc=ruc)
     
     if not db_cliente:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No existe cliente con RUC {ruc}"
+        )
+    
+    return db_cliente
+
+
+@router.get("/{cliente_id}", response_model=ClienteResponse)
+async def obtener_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    **Obtener cliente por ID**
+    
+    Retorna información completa de un cliente específico.
+    
+    **Requiere autenticación**
+    """
+    db_cliente = crud_cliente.get(db, id=cliente_id)
+    
+    if not db_cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente no encontrado"
         )
     
     return db_cliente
@@ -147,7 +179,7 @@ async def actualizar_cliente(
     
     **Requiere autenticación**
     """
-    db_cliente = crud_client.actualizar_cliente(db, cliente_id, cliente_update)
+    db_cliente = crud_cliente.get(db, id=cliente_id)
     
     if not db_cliente:
         raise HTTPException(
@@ -155,6 +187,7 @@ async def actualizar_cliente(
             detail="Cliente no encontrado"
         )
     
+    db_cliente = crud_cliente.update(db, db_obj=db_cliente, obj_in=cliente_update)
     return db_cliente
 
 
@@ -171,7 +204,7 @@ async def desactivar_cliente(
     
     **Requiere autenticación**
     """
-    success = crud_client.desactivar_cliente(db, cliente_id)
+    success = crud_cliente.desactivar(db, id=cliente_id)
     
     if not success:
         raise HTTPException(
@@ -195,7 +228,7 @@ async def activar_cliente(
     
     **Requiere autenticación**
     """
-    success = crud_client.activar_cliente(db, cliente_id)
+    success = crud_cliente.activar(db, id=cliente_id)
     
     if not success:
         raise HTTPException(
@@ -203,5 +236,5 @@ async def activar_cliente(
             detail="Cliente no encontrado"
         )
     
-    db_cliente = crud_client.obtener_cliente_por_id(db, cliente_id)
+    db_cliente = crud_cliente.get(db, id=cliente_id)
     return db_cliente
