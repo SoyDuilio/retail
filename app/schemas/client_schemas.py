@@ -1,71 +1,145 @@
 # app/schemas/client_schemas.py
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 from .common_schemas import Coordenadas
 from .product_schemas import TipoCliente
 
-# =============================================
-# CLIENTES BASE
-# =============================================
+# ============================================================================
+# SCHEMAS PARA CLIENTES
+# ============================================================================
 
 class ClienteBase(BaseModel):
-    ruc: str = Field(..., min_length=11, max_length=11)
-    razon_social: Optional[str] = Field(None, max_length=200)
-    nombres: Optional[str] = Field(None, max_length=100)
-    apellidos: Optional[str] = Field(None, max_length=100)
-    direccion: str = Field(..., min_length=10)
-    latitud: Optional[Decimal] = Field(None, ge=-90, le=90, decimal_places=8)
-    longitud: Optional[Decimal] = Field(None, ge=-180, le=180, decimal_places=8)
+    nombre_comercial: str
+    razon_social: str
+    ruc: str
+    telefono: str
+    email: Optional[EmailStr] = None
+    direccion_completa: str
+    referencia: Optional[str] = None
+    distrito: str
+    provincia: str
+    departamento: str
+    codigo_postal: Optional[str] = None
     tipo_cliente_id: int
-    contacto_nombres: Optional[str] = Field(None, max_length=100)
-    whatsapp: Optional[str] = Field(None, max_length=15)
-    limite_credito: Decimal = Field(default=0, ge=0, decimal_places=2)
-    credito_usado: Decimal = Field(default=0, ge=0, decimal_places=2)
-    activo: bool = True
-
-    @validator('ruc')
-    def validate_ruc(cls, v):
+    
+    @field_validator('ruc')
+    @classmethod
+    def validar_ruc(cls, v: str) -> str:
         if not v.isdigit():
             raise ValueError('RUC debe contener solo números')
         if len(v) != 11:
-            raise ValueError('RUC debe tener exactamente 11 dígitos')
+            raise ValueError('RUC debe tener 11 dígitos')
+        return v
+    
+    @field_validator('telefono')
+    @classmethod
+    def validar_telefono(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError('Teléfono debe contener solo números')
+        if len(v) < 7 or len(v) > 15:
+            raise ValueError('Teléfono debe tener entre 7 y 15 dígitos')
         return v
 
-    @validator('whatsapp')
-    def validate_whatsapp(cls, v):
-        if v and not v.replace('+', '').replace('-', '').replace(' ', '').isdigit():
-            raise ValueError('WhatsApp debe contener solo números')
-        return v
-
-    @validator('limite_credito')
-    def validate_limite_credito(cls, v):
-        if v < 0:
-            raise ValueError('Límite de crédito no puede ser negativo')
-        return v
 
 class ClienteCreate(ClienteBase):
-    @validator('nombres', 'apellidos', 'razon_social', pre=True, always=True)
-    def validate_nombre_o_razon_social(cls, v, values):
-        # Al menos uno de: (nombres + apellidos) o razon_social debe estar presente
-        if 'razon_social' in values:
-            if not values.get('razon_social') and not (values.get('nombres') and values.get('apellidos')):
-                raise ValueError('Debe proporcionar razón social o nombres y apellidos')
+    """Schema para crear un nuevo cliente desde el formulario web"""
+    # Campos adicionales del titular (se guardarán en contactos)
+    dni_titular: Optional[str] = None
+    nombres_titular: Optional[str] = None
+    latitud: Optional[Decimal] = None
+    longitud: Optional[Decimal] = None
+    precision_gps: Optional[Decimal] = None
+    
+    @field_validator('dni_titular')
+    @classmethod
+    def validar_dni(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            if not v.isdigit():
+                raise ValueError('DNI debe contener solo números')
+            if len(v) != 8:
+                raise ValueError('DNI debe tener 8 dígitos')
         return v
 
+
 class ClienteUpdate(BaseModel):
-    razon_social: Optional[str] = Field(None, max_length=200)
-    nombres: Optional[str] = Field(None, max_length=100)
-    apellidos: Optional[str] = Field(None, max_length=100)
-    direccion: Optional[str] = Field(None, min_length=10)
-    latitud: Optional[Decimal] = Field(None, ge=-90, le=90, decimal_places=8)
-    longitud: Optional[Decimal] = Field(None, ge=-180, le=180, decimal_places=8)
+    """Schema para actualizar cliente"""
+    nombre_comercial: Optional[str] = None
+    razon_social: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[EmailStr] = None
+    direccion_completa: Optional[str] = None
+    referencia: Optional[str] = None
+    distrito: Optional[str] = None
+    provincia: Optional[str] = None
+    departamento: Optional[str] = None
+    codigo_postal: Optional[str] = None
     tipo_cliente_id: Optional[int] = None
-    contacto_nombres: Optional[str] = Field(None, max_length=100)
-    whatsapp: Optional[str] = Field(None, max_length=15)
-    limite_credito: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
     activo: Optional[bool] = None
+    verificado: Optional[bool] = None
+    
+    @field_validator('telefono')
+    @classmethod
+    def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            if not v.isdigit():
+                raise ValueError('Teléfono debe contener solo números')
+            if len(v) < 7 or len(v) > 15:
+                raise ValueError('Teléfono debe tener entre 7 y 15 dígitos')
+        return v
+
+
+class ClienteResponse(ClienteBase):
+    """Schema para respuesta de cliente"""
+    id: int
+    codigo_cliente: str
+    activo: bool
+    verificado: bool
+    fecha_registro: datetime
+    es_moroso: bool
+    deuda_actual: Decimal
+    dias_mora: int
+    
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class ClienteListResponse(BaseModel):
+    """Schema para lista de clientes (simplificado)"""
+    id: int
+    codigo_cliente: str
+    nombre_comercial: str
+    razon_social: str
+    ruc: str
+    telefono: str
+    distrito: str
+    provincia: str
+    activo: bool
+    verificado: bool
+    es_moroso: bool
+    deuda_actual: Decimal
+    
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class ClienteSelectResponse(BaseModel):
+    """Schema simple para select/dropdown"""
+    id: int
+    codigo_cliente: str
+    nombre_comercial: str
+    ruc: str
+    
+    model_config = {
+        "from_attributes": True
+    }
+
+# =============================================
+# SOBRAN???? 👇
+# =============================================
 
 class Cliente(ClienteBase):
     id: int
