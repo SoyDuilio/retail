@@ -2350,3 +2350,26 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================
+   CSS para animación pulse 
+   ============================================ */
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        color: inherit;
+    }
+    50% { 
+        transform: scale(1.15); 
+        color: #10b981;
+        font-weight: bold;
+    }
+}
+
+.pulse {
+    animation: pulse 0.5s ease;
+}
+
+#totalPedido {
+    transition: all 0.3s ease;
+}
