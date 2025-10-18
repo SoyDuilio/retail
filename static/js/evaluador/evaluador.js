@@ -3,6 +3,17 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
+// Al inicio del archivo
+function verificarSesion() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = '/login';
+        return false;
+    }
+    return true;
+}
+
+
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/evaluador/${evaluadorId}`;
@@ -24,17 +35,31 @@ function connectWebSocket() {
         console.error('❌ Error WebSocket:', error);
     };
     
-    ws.onclose = () => {
-        console.log('❌ WebSocket cerrado');
+    ws.onclose = (event) => {
+        console.log('❌ WebSocket cerrado. Código:', event.code);
         
-        // Intentar reconectar
+        // DETECTAR CIERRE POR AUTENTICACIÓN
+        if (event.code === 1008 || event.code === 4401) {
+            // 1008 = Policy Violation
+            // 4401 = Custom code para auth error
+            console.log('⏰ WebSocket cerrado por sesión expirada');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            mostrarNotificacion('Sesión expirada. Redirigiendo...', 'warning');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+            return;
+        }
+        
+        // Intentar reconectar para otros errores
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-            console.log(`Reintentando conexión en ${delay/1000}s...`);
+            console.log(`🔄 Reintentando conexión en ${delay/1000}s... (intento ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
             setTimeout(connectWebSocket, delay);
         } else {
-            mostrarNotificacion('Conexión perdida. Recarga la página.', 'error');
+            mostrarNotificacion('Conexión perdida. Por favor recarga la página.', 'error');
         }
     };
 }
@@ -54,6 +79,12 @@ function handleWebSocketMessage(message) {
             break;
         case 'emergency':
             mostrarNotificacion('🚨 ' + message.data.message, 'error');
+            break;
+        case 'auth_error':  // AGREGAR ESTE CASO
+            console.log('⏰ Error de autenticación recibido');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/login';
             break;
     }
     
@@ -164,12 +195,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ==================== ESTADÍSTICAS ====================
 async function cargarEstadisticas() {
+    const token = localStorage.getItem('auth_token');
+    
+    // Verificar que existe token
+    if (!token) {
+        console.warn('No hay token, redirigiendo al login...');
+        window.location.href = '/login';
+        return;
+    }
+    
     try {
         const response = await fetch('/api/evaluador/estadisticas', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
+        
+        // DETECTAR TOKEN EXPIRADO
+        if (response.status === 401) {
+            console.log('⏰ Sesión expirada, redirigiendo...');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/login';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
         
         const result = await response.json();
         
@@ -180,6 +233,8 @@ async function cargarEstadisticas() {
         }
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
+        // Mostrar notificación al usuario
+        mostrarNotificacion('Error al cargar estadísticas', 'error');
     }
 }
 
