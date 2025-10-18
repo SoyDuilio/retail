@@ -8,10 +8,11 @@ from app.schemas.client_schemas import ClienteCreate, ClienteUpdate
 
 # Verificar si existe ContactoClienteModel
 try:
-    from app.models.contacto_cliente import ContactoClienteModel
+    from app.models.contacto_cliente import ContactoClienteModel  # type: ignore
     TIENE_CONTACTOS = True
 except ImportError:
     TIENE_CONTACTOS = False
+    ContactoClienteModel = None  # type: ignore
 
 # ============================================================================
 # CRUD CLIENTE
