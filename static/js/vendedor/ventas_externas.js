@@ -638,7 +638,7 @@ async function buscarCliente(query) {
         
         if (response.ok) {
             const clientes = await response.json();
-            onsole.log('📦 Data completa:', clientes);
+            console.log('📦 Data completa:', clientes);
             console.log('📦 data.success:', clientes.success);
             console.log('📦 data.data:', clientes.data);
             console.log('📦 Tipo de data.data:', typeof clientes.data);
@@ -1619,5 +1619,6 @@ function formatearEstado(estado) {
     };
     return estados[estado] || estado;
 }
+
 
 
