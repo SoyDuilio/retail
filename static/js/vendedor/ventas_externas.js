@@ -1463,9 +1463,11 @@ function mostrarModalMeta() {
     Toast.info('Modal de Meta - En desarrollo');
 }
 
+/*
 function mostrarModalPedidos() {
     Toast.info('Modal de Pedidos del día - En desarrollo');
 }
+*/
 
 function mostrarModalRanking() {
     Toast.info('Modal de Ranking - En desarrollo');
@@ -1500,9 +1502,21 @@ async function actualizarPedidos() {
 
 // MODAL DE ESTADISTICAS - PEDIDOS DEL DÍA
 // Modal de Pedidos del Día
+let cargandoPedidos = false;
 async function mostrarModalPedidos() {
+    if (cargandoPedidos) {
+        console.log('⏳ Ya se está cargando...');
+        return;
+    }
+    
+    cargandoPedidos = true;
     document.getElementById('modalPedidos').classList.remove('hidden');
-    await cargarPedidosHoy();
+    
+    try {
+        await cargarPedidosHoy();
+    } finally {
+        cargandoPedidos = false;
+    }
 }
 
 async function cargarPedidosHoy() {
