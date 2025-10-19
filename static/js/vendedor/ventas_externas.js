@@ -632,9 +632,22 @@ async function buscarCliente(query) {
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${estadoApp.token}` }
         });
+
+        console.log('📊 Response status:', response.status);
+        console.log('📊 Response ok:', response.ok);
         
         if (response.ok) {
             const clientes = await response.json();
+            onsole.log('📦 Data completa:', clientes);
+            console.log('📦 data.success:', clientes.success);
+            console.log('📦 data.data:', clientes.data);
+            console.log('📦 Tipo de data.data:', typeof clientes.data);
+            console.log('📦 Es array?:', Array.isArray(clientes.data));
+
+            // El endpoint retorna { success: true, data: [...] }
+            const elCliente = data.success ? clientes.data : [];
+            console.log('👥 Clientes a mostrar:', elCliente);
+            console.log('👥 Cantidad:', elCliente.length);
             // El endpoint ya retorna un array directamente
             mostrarResultadosClientes(clientes);
         } else {
@@ -658,14 +671,19 @@ function determinarTipoBusqueda(query) {
 }
 
 function mostrarResultadosClientes(clientes) {
+    console.log('🎨 mostrarResultadosClientes llamada');
+    console.log('🎨 Clientes recibidos:', clientes);
+    console.log('🎨 Cantidad:', clientes?.length);
     const dropdown = document.getElementById('dropdownClientes');
+    console.log('🎨 Dropdown encontrado:', dropdown);
     
     if (!clientes || clientes.length === 0) {
+        console.log('⚠️ No hay clientes para mostrar');
         dropdown.innerHTML = '<div class="empty-state">No se encontraron clientes</div>';
         dropdown.classList.remove('hidden');
         return;
     }
-    
+    console.log('🎨 Generando HTML...');
     const html = clientes.map(cliente => {
         // Usar estructura REAL de la tabla
         const nombre = cliente.nombre_comercial || cliente.razon_social || `Cliente RUC ${cliente.ruc}`;
@@ -1601,4 +1619,5 @@ function formatearEstado(estado) {
     };
     return estados[estado] || estado;
 }
+
 
