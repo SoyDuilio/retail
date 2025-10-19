@@ -627,7 +627,7 @@ function calcularPorcentajeCoincidencia(distanciaMetros) {
 async function buscarCliente(query) {
     try {
         // Usar el parámetro 'buscar' del nuevo endpoint
-        const url = `/api/clientes/?buscar=${encodeURIComponent(query)}`;
+        const url = `/api/clientes/buscar?q=${encodeURIComponent(query)}`;
         
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${estadoApp.token}` }
@@ -1601,3 +1601,4 @@ function formatearEstado(estado) {
     };
     return estados[estado] || estado;
 }
+
