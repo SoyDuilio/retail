@@ -127,11 +127,15 @@ from api.v1 import rutas_pedidos
 print("=" * 70)
 print("📦 IMPORTANDO ROUTERS...")
 
-from api.endpoints import clientes
-print(f"✅ Router clientes importado: {clientes.router}")
-print(f"   Prefix: {clientes.router.prefix}")
-print(f"   Tags: {clientes.router.tags}")
-
+try:
+    from api.endpoints import clientes
+    print(f"✅ Router clientes importado: {clientes.router}")
+    print(f"   Prefix: {clientes.router.prefix}")
+    print(f"   Tags: {clientes.router.tags}")
+except Exception as e:
+    print(f"❌ ERROR importando clientes: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Función auxiliar para obtener la hora actual en UTC
 def get_utc_now():
@@ -2706,3 +2710,4 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
