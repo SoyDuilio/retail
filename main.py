@@ -22,7 +22,6 @@ from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
 from app.apis.vfp import rutas_vfp
 from app.routers.admin import panel_sync 
-from app.routers import clientes
 from api.endpoints import clientes
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
@@ -2675,4 +2674,5 @@ async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
