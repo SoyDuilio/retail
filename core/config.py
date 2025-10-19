@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     
     APIS_NET_PE_TOKEN: Optional[str] = Field(default=None, env="APIS_NET_PE_TOKEN")
 
+    APISPERU_TOKEN: str = ""
+
     # JWT Configuration
     ACCESS_TOKEN_EXPIRE_HOURS: int = Field(default=8, env="ACCESS_TOKEN_EXPIRE_HOURS")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, env="REFRESH_TOKEN_EXPIRE_DAYS")
