@@ -1436,20 +1436,39 @@ async function validarRuc(ruc) {
     resultado.innerHTML = '';
     
     try {
-        const response = await fetch(`/api/utils/ruc/${ruc}`);
+        const response = await fetch(`/api/clientes/validar-ruc/${ruc}`, {
+            headers: { 'Authorization': `Bearer ${estadoApp.token}` }
+        });
         
         if (response.ok) {
             const data = await response.json();
             
             if (data.success) {
                 document.getElementById('nuevaRazonSocial').value = data.razon_social || '';
-                document.getElementById('nuevaDireccion').value = data.direccion || '';
-                document.getElementById('nuevoDistrito').value = data.distrito || '';
-                document.getElementById('nuevaProvincia').value = data.provincia || '';
-                document.getElementById('nuevaRegion').value = data.departamento || '';
                 
-                resultado.className = 'validation-message success';
-                resultado.textContent = '✓ RUC válido - Datos cargados';
+                // ✅ NUEVO: Detectar si es persona natural
+                if (data.direccion) {
+                    // Persona jurídica: llenar todos los campos
+                    document.getElementById('nuevaDireccion').value = data.direccion;
+                    document.getElementById('nuevoDistrito').value = data.distrito || '';
+                    document.getElementById('nuevaProvincia').value = data.provincia || '';
+                    document.getElementById('nuevaRegion').value = data.departamento || '';
+                    
+                    resultado.className = 'validation-message success';
+                    resultado.textContent = '✓ RUC válido - Datos cargados';
+                } else {
+                    // Persona natural: limpiar y permitir ingreso manual
+                    document.getElementById('nuevaDireccion').value = '';
+                    document.getElementById('nuevaDireccion').removeAttribute('readonly');
+                    document.getElementById('nuevoDistrito').value = '';
+                    document.getElementById('nuevaProvincia').value = '';
+                    document.getElementById('nuevaRegion').value = '';
+                    
+                    resultado.className = 'validation-message info';
+                    resultado.textContent = '✓ RUC válido - Ingresa la dirección manualmente';
+                    
+                    Toast.info('RUC de persona natural. Ingresa la dirección del negocio');
+                }
             } else {
                 resultado.className = 'validation-message error';
                 resultado.textContent = '✗ RUC no encontrado';
@@ -1725,4 +1744,48 @@ function formatearEstado(estado) {
     return estados[estado] || estado;
 }
 
+
+
+
+// ============================================
+// CALLBACK: Cliente recién creado
+// ============================================
+
+window.onClienteCreado = function(clienteData) {
+    console.log('✅ Cliente creado, seleccionando automáticamente:', clienteData);
+    
+    // Normalizar datos del cliente recién creado
+    const clienteNormalizado = {
+        id: clienteData.id,
+        codigo_cliente: clienteData.codigo_cliente,
+        nombre_comercial: clienteData.nombre_comercial,
+        razon_social: clienteData.razon_social,
+        ruc: clienteData.ruc,
+        telefono: clienteData.telefono,
+        email: clienteData.email || '',
+        direccion: clienteData.direccion_completa,
+        distrito: clienteData.distrito,
+        provincia: clienteData.provincia,
+        departamento: clienteData.departamento,
+        latitud: clienteData.latitud || null,
+        longitud: clienteData.longitud || null,
+        tipo_cliente_id: clienteData.tipo_cliente_id,
+        tipo_cliente_nombre: 'Cliente', // Se podría mejorar consultando el tipo
+        nombre_completo: clienteData.nombre_comercial || clienteData.razon_social
+    };
+    
+    // Usar la función existente de selección
+    seleccionarCliente(clienteNormalizado);
+    
+    // Mensaje de éxito
+    Toast.success(`¡Cliente ${clienteData.codigo_cliente} seleccionado! Ya puedes agregar productos.`);
+    
+    // Enfocar en búsqueda de productos
+    setTimeout(() => {
+        const inputProductos = document.getElementById('inputProductos');
+        if (inputProductos) {
+            inputProductos.focus();
+        }
+    }, 500);
+};
 // FIN DEL ARCHIVO

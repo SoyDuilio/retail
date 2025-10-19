@@ -73,11 +73,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function cerrarModal() {
-        modalNuevoCliente.classList.remove('modal-activo');
+        const modal = document.getElementById('modalNuevoCliente');
+        
+        if (modal) {
+            modal.classList.remove('modal-activo');
+            modal.classList.add('hidden'); // ✅ Agregar esta línea
+        }
+        
         document.body.style.overflow = '';
-        formNuevoCliente.reset();
+        
+        // Resetear formulario
+        if (formNuevoCliente) {
+            formNuevoCliente.reset();
+        }
+        
         limpiarTodosLosErrores();
         ocultarDatosValidados();
+        
+        // Resetear wizard
         pasoActual = 1;
         rucValidado = false;
         dniValidado = false;
@@ -174,18 +187,64 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================================
     
     function validarPasoActual() {
-        limpiarTodosLosErrores();
-        
-        switch(pasoActual) {
-            case 1:
-                return validarPaso1();
-            case 2:
-                return validarPaso2();
-            case 3:
-                return validarPaso3();
-            default:
-                return true;
+        if (pasoActual === 1) {
+            // Validar RUC y DNI
+            if (!rucValidado) {
+                mostrarNotificacion('Debes validar el RUC', 'error');
+                return false;
+            }
+            if (!dniValidado) {
+                mostrarNotificacion('Debes validar el DNI del titular', 'error');
+                return false;
+            }
+            return true;
         }
+        
+        if (pasoActual === 2) {
+            // Validar campos obligatorios del paso 2
+            const telefono = document.getElementById('telefono').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
+            const departamento = document.getElementById('departamento_sunat').value.trim();
+            const provincia = document.getElementById('provincia_sunat').value.trim();
+            const distrito = document.getElementById('distrito_sunat').value.trim();
+            
+            if (!telefono) {
+                mostrarNotificacion('El teléfono es obligatorio', 'error');
+                document.getElementById('telefono').focus();
+                return false;
+            }
+            
+            if (telefono.length !== 9) {
+                mostrarNotificacion('El teléfono debe tener 9 dígitos', 'error');
+                document.getElementById('telefono').focus();
+                return false;
+            }
+            
+            if (!direccion) {
+                mostrarNotificacion('La dirección es obligatoria', 'error');
+                document.getElementById('direccion').focus();
+                return false;
+            }
+            
+            if (!departamento || !provincia || !distrito) {
+                mostrarNotificacion('Completa la ubicación (departamento, provincia, distrito)', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        if (pasoActual === 3) {
+            // Validar tipo de cliente
+            const tipoCliente = document.getElementById('tipo_cliente').value;
+            if (!tipoCliente) {
+                mostrarNotificacion('Selecciona el tipo de cliente', 'error');
+                return false;
+            }
+            return true;
+        }
+        
+        return true;
     }
     
     function validarPaso1() {
@@ -280,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // VALIDACIÓN AUTOMÁTICA DE RUC (11 DÍGITOS)
     // ========================================================================
     
-    function validarRUC() {
+    async function validarRUC() {
         const ruc = inputRuc.value.trim();
         
         limpiarFeedback('feedbackRuc');
@@ -308,31 +367,100 @@ document.addEventListener('DOMContentLoaded', function() {
             Validando...
         `;
         
-        setTimeout(() => {
-            const datosEmpresa = {
-                ruc: ruc,
-                razonSocial: 'DISTRIBUIDORA COMERCIAL SAC',
-                nombreComercial: 'DISCOMERCIAL',
-                estado: 'ACTIVO',
-                condicion: 'HABIDO',
-                direccion: 'AV. INDUSTRIAL 456, LIMA'
-            };
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/clientes/validar-ruc/${ruc}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             
-            document.getElementById('razon_social').value = datosEmpresa.razonSocial;
-            document.getElementById('nombre_comercial').value = datosEmpresa.nombreComercial;
-            
-            const inputDireccion = document.getElementById('direccion');
-            if (inputDireccion && !inputDireccion.value.trim()) {
-                inputDireccion.value = datosEmpresa.direccion;
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Llenar campos con datos reales
+                document.getElementById('razon_social').value = data.razon_social || '';
+                document.getElementById('nombre_comercial').value = data.nombre_comercial || data.razon_social || '';
+                
+                // ✅ CORREGIR: Usar los IDs correctos del HTML
+                const inputDireccion = document.getElementById('direccion');
+                const inputDepartamento = document.getElementById('departamento_sunat');  // ✅
+                const inputProvincia = document.getElementById('provincia_sunat');        // ✅
+                const inputDistrito = document.getElementById('distrito_sunat');          // ✅
+                
+                // ✅ Verificar si es persona jurídica (tiene dirección y ubicación)
+                if (data.direccion && data.departamento) {
+                    // Persona jurídica: llenar y bloquear campos
+                    if (inputDireccion) {
+                        inputDireccion.value = data.direccion;
+                        inputDireccion.setAttribute('readonly', 'readonly');
+                    }
+                    
+                    if (inputDepartamento) {
+                        inputDepartamento.value = data.departamento;
+                        inputDepartamento.setAttribute('readonly', 'readonly');
+                    }
+                    
+                    if (inputProvincia) {
+                        inputProvincia.value = data.provincia;
+                        inputProvincia.setAttribute('readonly', 'readonly');
+                    }
+                    
+                    if (inputDistrito) {
+                        inputDistrito.value = data.distrito;
+                        inputDistrito.setAttribute('readonly', 'readonly');
+                    }
+                    
+                } else {
+                    // Persona natural: habilitar ingreso manual
+                    if (inputDireccion) {
+                        inputDireccion.value = '';
+                        inputDireccion.removeAttribute('readonly');
+                        inputDireccion.placeholder = 'Ingresa la dirección del negocio';
+                    }
+                    
+                    if (inputDepartamento) {
+                        inputDepartamento.value = '';
+                        inputDepartamento.removeAttribute('readonly');
+                        inputDepartamento.placeholder = 'Ej: Lima';
+                    }
+                    
+                    if (inputProvincia) {
+                        inputProvincia.value = '';
+                        inputProvincia.removeAttribute('readonly');
+                        inputProvincia.placeholder = 'Ej: Lima';
+                    }
+                    
+                    if (inputDistrito) {
+                        inputDistrito.value = '';
+                        inputDistrito.removeAttribute('readonly');
+                        inputDistrito.placeholder = 'Ej: Miraflores';
+                    }
+                    
+                    mostrarNotificacion('RUC de persona natural. Ingresa la dirección y ubicación manualmente', 'info');
+                }
+                
+                // Mostrar sección de datos validados
+                const datosRuc = document.getElementById('datosRuc');
+                if (datosRuc) {
+                    datosRuc.classList.remove('hidden');
+                }
+                
+                rucValidado = true;
+                mostrarFeedback('feedbackRuc', `✓ ${data.razon_social} - ${data.estado}`, 'success');
+                mostrarNotificacion('Datos de SUNAT obtenidos correctamente', 'success');
+                
+            } else {
+                mostrarFeedback('feedbackRuc', data.message || 'RUC no encontrado', 'error');
+                mostrarNotificacion('No se pudo validar el RUC', 'error');
+                rucValidado = false;
             }
             
-            const datosRuc = document.getElementById('datosRuc');
-            if (datosRuc) {
-                datosRuc.classList.remove('hidden');
-            }
+        } catch (error) {
+            console.error('Error validando RUC:', error);
+            mostrarFeedback('feedbackRuc', 'Error al conectar con SUNAT', 'error');
+            mostrarNotificacion('Error de conexión', 'error');
+            rucValidado = false;
             
-            rucValidado = true;
-            
+        } finally {
             btnValidarRuc.disabled = false;
             btnValidarRuc.innerHTML = `
                 <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,11 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </svg>
                 Validar
             `;
-            
-            mostrarFeedback('feedbackRuc', 'RUC validado correctamente', 'success');
-            mostrarNotificacion('Datos de SUNAT obtenidos correctamente', 'success');
-            
-        }, 1500);
+        }
     }
     
     
@@ -352,8 +476,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // VALIDACIÓN AUTOMÁTICA DE DNI (8 DÍGITOS)
     // ========================================================================
     
-    function validarDNI() {
-        const dni = inputDni.value.trim();
+    async function validarDNI() {
+        const dni = document.getElementById('numero_dni').value.trim();
         
         limpiarFeedback('feedbackDni');
         
@@ -372,6 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        const btnValidarDni = document.getElementById('btnValidarDni');
         btnValidarDni.disabled = true;
         btnValidarDni.innerHTML = `
             <svg class="btn-icon animate-spin" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,25 +505,48 @@ document.addEventListener('DOMContentLoaded', function() {
             Validando...
         `;
         
-        setTimeout(() => {
-            const datosPersona = {
-                dni: dni,
-                nombres: 'JUAN',
-                apellidoPaterno: 'PEREZ',
-                apellidoMaterno: 'LOPEZ'
-            };
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/clientes/validar-dni/${dni}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             
-            const nombreCompleto = `${datosPersona.nombres} ${datosPersona.apellidoPaterno} ${datosPersona.apellidoMaterno}`;
+            const data = await response.json();
             
-            document.getElementById('nombres_titular').value = nombreCompleto;
-            
-            const datosDni = document.getElementById('datosDni');
-            if (datosDni) {
-                datosDni.classList.remove('hidden');
+            if (response.ok && data.success) {
+                // ✅ VERIFICAR IDs correctos del HTML
+                const inputNombres = document.getElementById('nombres_titular');
+                const inputApPaterno = document.getElementById('apellido_paterno_titular');
+                const inputApMaterno = document.getElementById('apellido_materno_titular');
+                
+                if (inputNombres) inputNombres.value = data.nombres || '';
+                if (inputApPaterno) inputApPaterno.value = data.apellido_paterno || '';
+                if (inputApMaterno) inputApMaterno.value = data.apellido_materno || '';
+                
+                // Mostrar datos validados
+                const datosDni = document.getElementById('datosDni');
+                if (datosDni) {
+                    datosDni.classList.remove('hidden');
+                }
+                
+                dniValidado = true;
+                mostrarFeedback('feedbackDni', `✓ ${data.nombre_completo}`, 'success');
+                mostrarNotificacion('DNI validado correctamente', 'success');
+                
+            } else {
+                // ✅ MANEJAR ERROR
+                mostrarFeedback('feedbackDni', data.message || 'DNI no encontrado', 'error');
+                mostrarNotificacion('No se pudo validar el DNI', 'error');
+                dniValidado = false;
             }
             
-            dniValidado = true;
+        } catch (error) {
+            console.error('Error validando DNI:', error);
+            mostrarFeedback('feedbackDni', 'Error al conectar con RENIEC', 'error');
+            mostrarNotificacion('Error de conexión', 'error');
+            dniValidado = false;
             
+        } finally {
             btnValidarDni.disabled = false;
             btnValidarDni.innerHTML = `
                 <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -406,11 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </svg>
                 Validar
             `;
-            
-            mostrarFeedback('feedbackDni', 'DNI validado correctamente', 'success');
-            mostrarNotificacion('Datos de RENIEC obtenidos correctamente', 'success');
-            
-        }, 1500);
+        }
     }
     
     
@@ -848,3 +992,153 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
     
 });
+
+
+/*========================================
+✅ GRABAR NUEVO CLIENTE - JS
+=========================================*/
+async function finalizarRegistro() {
+    // Validar paso 3
+    const tipoCliente = document.getElementById('tipo_cliente').value;
+    if (!tipoCliente) {
+        mostrarNotificacion('Selecciona el tipo de cliente', 'error');
+        return;
+    }
+    
+    // Obtener ubicación del vendedor (GPS)
+    if (!navigator.geolocation) {
+        mostrarNotificacion('Tu navegador no soporta geolocalización', 'error');
+        return;
+    }
+    
+    // Deshabilitar botón mientras procesa
+    const btnGuardarCliente = document.getElementById('btnGuardarCliente');
+    const textoOriginal = btnGuardarCliente.innerHTML;
+    btnGuardarCliente.disabled = true;
+    btnGuardarCliente.innerHTML = `
+        <svg class="animate-spin" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Guardando...
+    `;
+    
+    // Capturar ubicación GPS
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                // Construir objeto según ClienteCreate schema
+                const nuevoCliente = {
+                    // Campos obligatorios de ClienteBase
+                    nombre_comercial: document.getElementById('nombre_comercial').value.trim(),
+                    razon_social: document.getElementById('razon_social').value.trim(),
+                    ruc: document.getElementById('numero_ruc').value.trim(),
+                    telefono: document.getElementById('telefono').value.trim(),
+                    email: document.getElementById('email').value.trim() || null,
+                    direccion_completa: document.getElementById('direccion').value.trim(),
+                    referencia: document.getElementById('referencia').value.trim() || null,
+                    distrito: document.getElementById('distrito_sunat').value.trim(),
+                    provincia: document.getElementById('provincia_sunat').value.trim(),
+                    departamento: document.getElementById('departamento_sunat').value.trim(),
+                    codigo_postal: null,
+                    tipo_cliente_id: parseInt(tipoCliente),
+                    
+                    // Campos adicionales de ClienteCreate
+                    dni_titular: document.getElementById('numero_dni').value.trim() || null,
+                    nombres_titular: construirNombreCompleto(),
+                    latitud: position.coords.latitude.toFixed(6),
+                    longitud: position.coords.longitude.toFixed(6),
+                    precision_gps: Math.round(position.coords.accuracy)
+                };
+                
+                console.log('📤 Enviando cliente:', nuevoCliente);
+                
+                // Enviar al backend
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('/api/clientes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(nuevoCliente)
+                });
+                
+                const data = await response.json();
+                console.log('📥 Respuesta servidor:', data);
+                
+                if (response.ok) {
+                    mostrarNotificacion(`¡Cliente ${data.codigo_cliente} registrado exitosamente!`, 'success');
+                    
+                    // Cerrar modal y limpiar
+                    cerrarModal();
+                    limpiarFormulario();
+                    
+                    // Si hay callback para seleccionar automáticamente el cliente
+                    if (window.onClienteCreado && typeof window.onClienteCreado === 'function') {
+                        window.onClienteCreado(data);
+                    }
+                    
+                } else {
+                    console.error('❌ Error del servidor:', data);
+                    mostrarNotificacion(data.detail || 'Error al registrar cliente', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error de red:', error);
+                mostrarNotificacion('Error de conexión al guardar', 'error');
+            } finally {
+                btnGuardarCliente.disabled = false;
+                btnGuardarCliente.innerHTML = textoOriginal;
+            }
+        },
+        (error) => {
+            console.error('❌ Error GPS:', error);
+            let mensaje = 'No se pudo obtener la ubicación. ';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    mensaje += 'Activa los permisos de ubicación.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    mensaje += 'Activa el GPS de tu dispositivo.';
+                    break;
+                case error.TIMEOUT:
+                    mensaje += 'Tiempo de espera agotado.';
+                    break;
+            }
+            
+            mostrarNotificacion(mensaje, 'error');
+            btnGuardarCliente.disabled = false;
+            btnGuardarCliente.innerHTML = textoOriginal;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// Función auxiliar para construir nombre completo del titular
+function construirNombreCompleto() {
+    const nombres = document.getElementById('nombres_completos')?.value.trim() || '';
+    
+    // Si hay un campo "nombres_completos" ya lleno, usarlo
+    if (nombres) return nombres;
+    
+    // Si no, intentar construir desde nombres separados (del DNI validado)
+    const nombresInput = document.getElementById('nombres_titular')?.value.trim() || '';
+    const apPaterno = document.getElementById('apellido_paterno')?.value.trim() || '';
+    const apMaterno = document.getElementById('apellido_materno')?.value.trim() || '';
+    
+    return `${nombresInput} ${apPaterno} ${apMaterno}`.trim() || null;
+}
+
+// Función auxiliar para limpiar formulario
+function limpiarFormulario() {
+    document.getElementById('formNuevoCliente').reset();
+    rucValidado = false;
+    dniValidado = false;
+    pasoActual = 1;
+    mostrarPaso(1);
+}
