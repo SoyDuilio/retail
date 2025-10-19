@@ -2714,9 +2714,29 @@ async def supervisor_dashboard(request: Request, supervisor_id: int):
 @app.get("/ceo/dashboard", response_class=HTMLResponse)
 async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
+
+
+@app.get("/debug/routes")
+async def debug_routes():
+    """Endpoint de debug para ver todas las rutas registradas"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods) if route.methods else [],
+                "name": route.name
+            })
+    return {
+        "total_routes": len(routes),
+        "routes": sorted(routes, key=lambda x: x['path'])
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
 
 
