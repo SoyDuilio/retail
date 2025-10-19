@@ -365,6 +365,27 @@
     color: #94a3b8;
 }
 
+/* Inputs readonly con datos llenados */
+.input-modern[readonly] {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed;
+    font-weight: 500;
+}
+
+.input-modern[readonly]::placeholder {
+    color: #9ca3af;
+}
+
+/* Cuando el input tiene valor */
+.input-modern:not(:placeholder-shown) {
+    background-color: #ffffff;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+
 .input-readonly {
     background: var(--color-bg);
     color: var(--color-text-light);
@@ -857,4 +878,23 @@
         width: 100%;
         justify-content: center;
     }
+}
+
+
+/* Inputs de ubicación editables (persona natural) */
+#departamento_sunat:not([readonly]),
+#provincia_sunat:not([readonly]),
+#distrito_sunat:not([readonly]) {
+    background-color: #ffffff !important;
+    border: 2px solid #3b82f6 !important;
+    color: #1f2937 !important;
+    cursor: text;
+}
+
+#departamento_sunat:not([readonly]):focus,
+#provincia_sunat:not([readonly]):focus,
+#distrito_sunat:not([readonly]):focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
 }
