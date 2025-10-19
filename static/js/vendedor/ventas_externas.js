@@ -550,8 +550,23 @@ async function guardarUbicacion(ubicacion) {
 }
 
 function mostrarModalUbicacion() {
+    console.log('═══════════════════════════════════════');
+    console.log('🗺️ INICIANDO mostrarModalUbicacion()');
+    console.log('═══════════════════════════════════════');
+    
     const modal = document.getElementById('modalUbicacion');
+    console.log('1. Modal encontrado?', modal ? 'SÍ' : 'NO');
+    
+    if (!modal) {
+        console.error('❌ Modal no encontrado en el DOM');
+        alert('Error: Modal de ubicación no encontrado');
+        return;
+    }
+    
     const contenido = document.getElementById('contenidoUbicacion');
+    console.log('2. Contenido encontrado?', contenido ? 'SÍ' : 'NO');
+    
+    console.log('3. Estado de ubicación:', estadoApp.ubicacion);
     
     if (estadoApp.ubicacion) {
         let html = `
@@ -561,41 +576,32 @@ function mostrarModalUbicacion() {
                 <p style="font-size: 13px; color: #93c5fd;">Longitud: ${estadoApp.ubicacion.longitud.toFixed(6)}</p>
                 <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Precisión: ±${Math.round(estadoApp.ubicacion.precision)}m</p>
             </div>
+            <button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">Actualizar Ubicación</button>
         `;
-        
-        // Si hay cliente seleccionado con coordenadas, mostrar comparación
-        if (estadoApp.clienteSeleccionado && estadoApp.clienteSeleccionado.latitud) {
-            const distancia = calcularDistancia(
-                estadoApp.ubicacion.latitud,
-                estadoApp.ubicacion.longitud,
-                estadoApp.clienteSeleccionado.latitud,
-                estadoApp.clienteSeleccionado.longitud
-            );
-            
-            const porcentaje = calcularPorcentajeCoincidencia(distancia);
-            const clase = porcentaje >= 80 ? 'alta' : porcentaje >= 50 ? 'media' : 'baja';
-            
-            html += `
-                <div class="alert-coincidencia ${clase}">
-                    <p style="font-weight: 600; margin-bottom: 4px;">Comparación con bodega</p>
-                    <p style="font-size: 13px;">Distancia: ${distancia.toFixed(0)}m</p>
-                    <p style="font-size: 13px;">Coincidencia: ${porcentaje}%</p>
-                </div>
-            `;
-        }
-        
-        html += `<button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">Actualizar Ubicación</button>`;
         contenido.innerHTML = html;
     } else {
-        contenido.innerHTML = `<button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            </svg>
-            Compartir Ubicación
-        </button>`;
+        contenido.innerHTML = `
+            <button class="btn-compartir-ubicacion" onclick="solicitarUbicacion()">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                </svg>
+                Compartir Ubicación
+            </button>
+        `;
     }
     
+    console.log('4. Contenido HTML actualizado');
+    console.log('5. Clases del modal ANTES:', modal.className);
+    
+    // Mostrar modal
     modal.classList.remove('hidden');
+    modal.classList.add('modal-activo');
+    
+    console.log('6. Clases del modal DESPUÉS:', modal.className);
+    console.log('7. Modal visible?', !modal.classList.contains('hidden'));
+    console.log('✅ mostrarModalUbicacion() COMPLETADA');
+    console.log('═══════════════════════════════════════');
+
 }
 
 // Calcular distancia entre dos puntos (fórmula de Haversine)
@@ -626,36 +632,28 @@ function calcularPorcentajeCoincidencia(distanciaMetros) {
 // BÚSQUEDA DE CLIENTES
 async function buscarCliente(query) {
     try {
-        // Usar el parámetro 'buscar' del nuevo endpoint
+        // ✅ USAR ESTO (funciona en local Y Railway):
         const url = `/api/clientes/buscar?q=${encodeURIComponent(query)}`;
+        
+        console.log('🔍 Buscando cliente:', query);
         
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${estadoApp.token}` }
         });
-        console.log('📊 Response status:', response.status);
-        console.log('📊 Response ok:', response.ok);
         
         if (response.ok) {
             const resultado = await response.json();
-            console.log('📦 Data completa:', resultado);
-            console.log('📦 resultado.success:', resultado.success);
-            console.log('📦 resultado.data:', resultado.data);
-            console.log('📦 Tipo de resultado.data:', typeof resultado.data);
-            console.log('📦 Es array?:', Array.isArray(resultado.data));
+            console.log('📦 Resultado:', resultado);
             
-            // ✅ CORRECCIÓN: usar 'resultado' en lugar de 'data'
+            // El endpoint de main.py retorna { success: true, data: [...] }
             const clientes = resultado.success ? resultado.data : [];
-            console.log('👥 Clientes a mostrar:', clientes);
-            console.log('👥 Cantidad:', clientes.length);
-            
-            // ✅ CORRECCIÓN: pasar 'clientes' (el array) en lugar de 'resultado' (el objeto completo)
             mostrarResultadosClientes(clientes);
         } else {
-            console.error('Error en búsqueda:', response.status);
+            console.error('❌ Error:', response.status);
             ocultarDropdownClientes();
         }
     } catch (error) {
-        console.error('Error buscando cliente:', error);
+        console.error('❌ Error:', error);
         ocultarDropdownClientes();
     }
 }
@@ -671,19 +669,14 @@ function determinarTipoBusqueda(query) {
 }
 
 function mostrarResultadosClientes(clientes) {
-    console.log('🎨 mostrarResultadosClientes llamada');
-    console.log('🎨 Clientes recibidos:', clientes);
-    console.log('🎨 Cantidad:', clientes?.length);
     const dropdown = document.getElementById('dropdownClientes');
-    console.log('🎨 Dropdown encontrado:', dropdown);
     
     if (!clientes || clientes.length === 0) {
-        console.log('⚠️ No hay clientes para mostrar');
         dropdown.innerHTML = '<div class="empty-state">No se encontraron clientes</div>';
         dropdown.classList.remove('hidden');
         return;
     }
-    console.log('🎨 Generando HTML...');
+    
     const html = clientes.map(cliente => {
         // Usar estructura REAL de la tabla
         const nombre = cliente.nombre_comercial || cliente.razon_social || `Cliente RUC ${cliente.ruc}`;
@@ -1279,13 +1272,36 @@ function confirmarPedido() {
     }
     
     if (!estadoApp.ubicacion) {
-        Toast.info('Por favor, comparte tu ubicación');
+        Toast.warning('Por favor, comparte tu ubicación');
         mostrarModalUbicacion();
         return;
     }
     
+    // ✅ VERIFICAR que los elementos existan antes de usarlos
+    const resumenCliente = document.getElementById('resumenCliente');
+    const totalPedidoModal = document.getElementById('totalPedidoModal');
+    const alertCoincidencia = document.getElementById('alertCoincidencia');
+    
+    console.log('Elementos del modal:', {
+        resumenCliente: resumenCliente ? 'existe' : 'NO EXISTE',
+        totalPedidoModal: totalPedidoModal ? 'existe' : 'NO EXISTE',
+        alertCoincidencia: alertCoincidencia ? 'existe' : 'NO EXISTE'
+    });
+    
+    // Solo actualizar si existen
+    if (resumenCliente) {
+        resumenCliente.textContent = 
+            `${estadoApp.clienteSeleccionado.nombre_completo} - RUC: ${estadoApp.clienteSeleccionado.ruc}`;
+    }
+    
+    // Calcular y mostrar total
+    const total = estadoApp.pedido.reduce((sum, item) => sum + item.subtotal, 0);
+    if (totalPedidoModal) {
+        totalPedidoModal.textContent = `S/ ${total.toFixed(2)}`;
+    }
+    
     // Calcular coincidencia de ubicación
-    if (estadoApp.clienteSeleccionado.latitud && estadoApp.clienteSeleccionado.longitud) {
+    if (alertCoincidencia && estadoApp.clienteSeleccionado.latitud && estadoApp.clienteSeleccionado.longitud) {
         const distancia = calcularDistancia(
             estadoApp.ubicacion.latitud,
             estadoApp.ubicacion.longitud,
@@ -1294,24 +1310,44 @@ function confirmarPedido() {
         );
         
         const porcentaje = calcularPorcentajeCoincidencia(distancia);
-        const alertDiv = document.getElementById('alertCoincidencia');
-        const clase = porcentaje >= 80 ? 'alta' : porcentaje >= 50 ? 'media' : 'baja';
         
-        alertDiv.className = `alert-coincidencia ${clase}`;
-        alertDiv.innerHTML = `
-            <strong>Verificación de ubicación:</strong><br>
+        let colorBg = '';
+        let colorTexto = '';
+        
+        if (porcentaje >= 80) {
+            colorBg = 'rgba(34, 197, 94, 0.1)';
+            colorTexto = '#22c55e';
+        } else if (porcentaje >= 50) {
+            colorBg = 'rgba(251, 191, 36, 0.1)';
+            colorTexto = '#fbbf24';
+        } else {
+            colorBg = 'rgba(239, 68, 68, 0.1)';
+            colorTexto = '#ef4444';
+        }
+        
+        alertCoincidencia.style.display = 'block';
+        alertCoincidencia.style.background = colorBg;
+        alertCoincidencia.style.borderRadius = '8px';
+        alertCoincidencia.style.padding = '12px';
+        alertCoincidencia.style.color = colorTexto;
+        alertCoincidencia.innerHTML = `
+            <strong>📍 Verificación de ubicación:</strong><br>
             Distancia a la bodega: ${distancia.toFixed(0)}m | Coincidencia: ${porcentaje}%
         `;
-    }
-
-    // Validar precisión antes de enviar
-    if (estadoApp.ubicacion.precision > 1000) {
-        if (!confirm(`La precisión de tu ubicación es baja (±${Math.round(estadoApp.ubicacion.precision)}m). ¿Deseas continuar de todas formas?`)) {
-            return;
-        }
+    } else if (alertCoincidencia) {
+        alertCoincidencia.style.display = 'none';
     }
     
-    abrirModal('modalConfirmarPedido');
+    // Abrir modal
+    const modal = document.getElementById('modalConfirmarPedido');
+    if (modal) {
+        console.log('Abriendo modal confirmar pedido...');
+        modal.classList.remove('hidden');
+        modal.classList.add('modal-activo');
+    } else {
+        console.error('❌ Modal modalConfirmarPedido NO EXISTE');
+        Toast.error('Error: Modal no encontrado');
+    }
 }
 
 async function enviarPedidoFinal() {
@@ -1501,7 +1537,11 @@ function abrirModal(modalId) {
 }
 
 function cerrarModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('modal-activo');  // ✅ Agregar esta línea
+    }
 }
 
 function logout() {
@@ -1521,36 +1561,65 @@ async function actualizarPedidos() {
 // MODAL DE ESTADISTICAS - PEDIDOS DEL DÍA
 // Modal de Pedidos del Día
 let cargandoPedidos = false;
+
 async function mostrarModalPedidos() {
+    console.log('═══════════════════════════════════════');
+    console.log('📦 INICIANDO mostrarModalPedidos()');
+    console.log('═══════════════════════════════════════');
+    
     if (cargandoPedidos) {
-        console.log('⏳ Ya se está cargando...');
+        console.log('⏳ Ya se está cargando, saliendo...');
         return;
     }
     
+    const modal = document.getElementById('modalPedidos');
+    console.log('1. Modal encontrado?', modal ? 'SÍ' : 'NO');
+    
+    if (!modal) {
+        console.error('❌ Modal no encontrado en el DOM');
+        alert('Error: Modal de pedidos no encontrado');
+        return;
+    }
+    
+    console.log('2. Clases del modal ANTES:', modal.className);
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('modal-activo');  // ✅ Agregar esta línea
+    
+    console.log('3. Clases del modal DESPUÉS:', modal.className);
+    console.log('4. Modal visible?', !modal.classList.contains('hidden'));
+    
     cargandoPedidos = true;
-    document.getElementById('modalPedidos').classList.remove('hidden');
+    console.log('5. Iniciando carga de pedidos...');
     
     try {
         await cargarPedidosHoy();
+        console.log('✅ Carga completada');
+    } catch (error) {
+        console.error('❌ Error en carga:', error);
     } finally {
         cargandoPedidos = false;
     }
+    
+    console.log('═══════════════════════════════════════');
 }
 
 async function cargarPedidosHoy() {
-    // Debug: ver todas las cookies
-    console.log('Todas las cookies:', document.cookie);
+    console.log('─────────────────────────────────────');
+    console.log('📊 INICIANDO cargarPedidosHoy()');
+    console.log('─────────────────────────────────────');
     
-    // Intentar con auth_token (del localStorage)
-    let token = localStorage.getItem('auth_token');
-    
-    console.log('Token extraído:', token ? 'SÍ' : 'NO');
+    const token = estadoApp.token;
+    console.log('1. Token disponible?', token ? 'SÍ' : 'NO');
     
     if (!token) {
+        console.error('❌ No hay token');
         document.getElementById('listaPedidosHoy').innerHTML = 
-            '<p style="text-align:center;color:#ef4444;">Sesión expirada. Recarga la página.</p>';
+            '<p style="text-align:center;color:#ef4444;padding:40px;">Sesión expirada. Recarga la página.</p>';
         return;
     }
+    
+    console.log('2. Haciendo fetch a /api/vendedor/estadisticas/pedidos-hoy');
     
     try {
         const response = await fetch('/api/vendedor/estadisticas/pedidos-hoy', {
@@ -1559,26 +1628,53 @@ async function cargarPedidosHoy() {
             }
         });
         
-        const data = await response.json();
+        console.log('3. Response status:', response.status);
+        console.log('4. Response ok?', response.ok);
         
-        if (data.success) {
-            mostrarPedidosEnModal(data.data);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('5. Data recibida:', data);
+            console.log('6. data.success?', data.success);
+            console.log('7. data.data:', data.data);
+            
+            if (data.success) {
+                console.log('8. Llamando a mostrarPedidosEnModal...');
+                mostrarPedidosEnModal(data.data);
+            } else {
+                console.error('❌ data.success es false');
+                document.getElementById('listaPedidosHoy').innerHTML = 
+                    `<p style="text-align:center;color:#ef4444;padding:40px;">Error: ${data.message || 'No se pudieron cargar los pedidos'}</p>`;
+            }
         } else {
+            console.error('❌ Response no ok');
+            const errorText = await response.text();
+            console.error('Error text:', errorText);
             document.getElementById('listaPedidosHoy').innerHTML = 
-                `<p style="text-align:center;color:#ef4444;">Error: ${data.message}</p>`;
+                '<p style="text-align:center;color:#ef4444;padding:40px;">Error al cargar pedidos</p>';
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Exception:', error);
+        console.error('Stack:', error.stack);
         document.getElementById('listaPedidosHoy').innerHTML = 
-            '<p style="text-align:center;color:#ef4444;">Error de conexión</p>';
+            '<p style="text-align:center;color:#ef4444;padding:40px;">Error de conexión</p>';
     }
+    
+    console.log('─────────────────────────────────────');
 }
 
 function mostrarPedidosEnModal(pedidos) {
+    console.log('─────────────────────────────────────');
+    console.log('🎨 INICIANDO mostrarPedidosEnModal()');
+    console.log('🎨 Pedidos recibidos:', pedidos);
+    console.log('🎨 Cantidad:', pedidos?.length);
+    console.log('─────────────────────────────────────');
+    
     // Calcular estadísticas
     const total = pedidos.length;
     const totalVentas = pedidos.reduce((sum, p) => sum + p.total, 0);
     const pendientes = pedidos.filter(p => p.estado === 'pendiente_aprobacion').length;
+    
+    console.log('Stats calculadas:', { total, totalVentas, pendientes });
     
     document.getElementById('totalPedidosHoy').textContent = total;
     document.getElementById('totalVentasHoy').textContent = `S/ ${totalVentas.toFixed(2)}`;
@@ -1586,13 +1682,15 @@ function mostrarPedidosEnModal(pedidos) {
     
     // Mostrar lista
     const lista = document.getElementById('listaPedidosHoy');
+    console.log('Lista elemento encontrado?', lista ? 'SÍ' : 'NO');
     
     if (pedidos.length === 0) {
-        lista.innerHTML = '<p style="text-align:center;color:#93c5fd;">No hay pedidos hoy</p>';
+        lista.innerHTML = '<p style="text-align:center;color:#93c5fd;padding:40px;">No hay pedidos hoy</p>';
+        console.log('✅ Mostrando mensaje vacío');
         return;
     }
     
-    lista.innerHTML = pedidos.map(p => `
+    const html = pedidos.map(p => `
         <div class="pedido-card">
             <div class="pedido-card-header">
                 <span class="pedido-numero">${p.numero_pedido}</span>
@@ -1606,6 +1704,13 @@ function mostrarPedidosEnModal(pedidos) {
             </div>
         </div>
     `).join('');
+    
+    console.log('HTML generado (primeros 200 chars):', html.substring(0, 200));
+    
+    lista.innerHTML = html;
+    
+    console.log('✅ mostrarPedidosEnModal() COMPLETADA');
+    console.log('─────────────────────────────────────');
 }
 
 function formatearEstado(estado) {
@@ -1620,6 +1725,4 @@ function formatearEstado(estado) {
     return estados[estado] || estado;
 }
 
-
-
-
+// FIN DEL ARCHIVO
