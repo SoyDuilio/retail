@@ -21,7 +21,9 @@ from google.cloud import speech
 from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
 from app.apis.vfp import rutas_vfp
-from app.routers.admin import panel_sync
+from app.routers.admin import panel_sync 
+#from app.routers import clientes
+from api.endpoints import clientes
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -245,12 +247,12 @@ manager = ConnectionManager()
 #app.include_router(vendedor_ops.router)
 app.include_router(vendedor_stats.router)
 app.include_router(vendedor_estadisticas.router)
-#app.include_router(clientes.router)
 app.include_router(rutas_pedidos.router)
 app.include_router(evaluaciones.router)
 app.include_router(evaluador_ws.router)
 app.include_router(rutas_vfp.router)
 app.include_router(panel_sync.router)
+app.include_router(clientes.router,tags=["clientes"])
 
 # =============================================
 # FUNCIONES AUXILIARES  
@@ -1569,77 +1571,6 @@ async def identificar_productos_en_texto(db: Session, texto: str) -> List[Produc
 # =============================================
 # ENDPOINTS PARA BÚSQUEDA Y GESTIÓN DE CLIENTES
 # =============================================
-
-@app.get("/api/clientes/buscar")
-async def buscar_clientes(
-    q: str,
-    current_vendedor: VendedorModel = Depends(get_current_vendedor),
-    db: Session = Depends(get_db)
-):
-    """Busca clientes por RUC, nombre comercial o teléfono"""
-    try:
-        print(f"🔍 Buscando clientes con: '{q}'")
-        
-        # Query SIN join para evitar problemas con tipos_cliente
-        clientes = db.query(ClienteModel).filter(
-            and_(
-                ClienteModel.activo == True,
-                or_(
-                    ClienteModel.ruc.ilike(f"%{q}%"),
-                    ClienteModel.nombre_comercial.ilike(f"%{q}%"),
-                    ClienteModel.razon_social.ilike(f"%{q}%"),
-                    ClienteModel.telefono.ilike(f"%{q}%")
-                )
-            )
-        ).limit(10).all()
-        
-        print(f"📦 Encontrados: {len(clientes)} clientes")
-        
-        resultados = []
-        for c in clientes:
-            # Manejo seguro de tipo_cliente
-            tipo_nombre = None
-            if c.tipo_cliente_id:
-                try:
-                    tipo_cliente = db.query(TipoClienteModel).filter(
-                        TipoClienteModel.id == c.tipo_cliente_id
-                    ).first()
-                    tipo_nombre = tipo_cliente.nombre if tipo_cliente else "Sin tipo"
-                except Exception as e:
-                    print(f"Error obteniendo tipo_cliente: {e}")
-                    tipo_nombre = "Sin tipo"
-            
-            resultados.append({
-                "id": c.id,
-                "codigo_cliente": c.codigo_cliente,
-                "nombre_comercial": c.nombre_comercial,
-                "razon_social": c.razon_social,
-                "ruc": c.ruc,
-                "telefono": c.telefono,
-                "distrito": c.distrito,
-                "provincia": c.provincia,
-                "departamento": c.departamento,
-                "latitud": float(c.latitud) if c.latitud else None,
-                "longitud": float(c.longitud) if c.longitud else None,
-                "tipo_cliente_id": c.tipo_cliente_id,
-                "tipo_cliente": {
-                    "id": c.tipo_cliente_id,
-                    "nombre": tipo_nombre or "Sin tipo"
-                }
-            })
-        
-        return DataResponse(
-            success=True,
-            message=f"Encontrados {len(resultados)} clientes",
-            data=resultados
-        )
-        
-    except Exception as e:
-        print(f"❌ Error en búsqueda de clientes: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error en búsqueda: {str(e)}")
-
 class BuscarClienteVozRequest(BaseModel):
     texto: str
     es_voz: bool = False
