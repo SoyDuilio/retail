@@ -489,38 +489,43 @@
                             </div>
 
                             <div class="form-row-3">
-                                <div class="form-group-modern">
-                                    <label class="label-modern">
-                                        <span class="label-text">Departamento</span>
-                                        <span class="label-required">*</span>
-                                    </label>
-                                    <select id="departamento" class="select-modern">
-                                        <option value="">Seleccionar</option>
-                                        <option value="Lima">Lima</option>
-                                        <option value="Arequipa">Arequipa</option>
-                                        <option value="Cusco">Cusco</option>
-                                    </select>
+
+                                <!-- Departamento -->
+                                <div class="form-group">
+                                    <label>Departamento *</label>
+                                    <input 
+                                        type="text" 
+                                        id="departamento_sunat" 
+                                        class="input-modern"
+                                        readonly
+                                        placeholder="Se llenará automáticamente"
+                                    />
                                 </div>
 
-                                <div class="form-group-modern">
-                                    <label class="label-modern">
-                                        <span class="label-text">Provincia</span>
-                                        <span class="label-required">*</span>
-                                    </label>
-                                    <select id="provincia" class="select-modern" disabled>
-                                        <option value="">Seleccionar</option>
-                                    </select>
+                                <!-- Provincia -->
+                                <div class="form-group">
+                                    <label>Provincia *</label>
+                                    <input 
+                                        type="text" 
+                                        id="provincia_sunat" 
+                                        class="input-modern"
+                                        readonly
+                                        placeholder="Se llenará automáticamente"
+                                    />
                                 </div>
 
-                                <div class="form-group-modern">
-                                    <label class="label-modern">
-                                        <span class="label-text">Distrito</span>
-                                        <span class="label-required">*</span>
-                                    </label>
-                                    <select id="distrito" class="select-modern" disabled>
-                                        <option value="">Seleccionar</option>
-                                    </select>
+                                <!-- Distrito -->
+                                <div class="form-group">
+                                    <label>Distrito *</label>
+                                    <input 
+                                        type="text" 
+                                        id="distrito_sunat" 
+                                        class="input-modern"
+                                        readonly
+                                        placeholder="Se llenará automáticamente"
+                                    />
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -632,7 +637,7 @@
                             </svg>
                         </button>
 
-                        <button type="submit" class="btn-modern btn-success" id="btnGuardarCliente" style="display: none;">
+                        <button type="submit" class="btn-modern btn-success" id="btnGuardarCliente" style="display: none;" onclick="finalizarRegistro()">
                             <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
@@ -726,5 +731,4 @@
     <script src="/static/js/vendedor/ventas_externas.js"></script>
     
 </body>
-
 </html>
