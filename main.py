@@ -123,6 +123,16 @@ from app.routers.evaluador import websocket as evaluador_ws
 #from app.routers.compartido import clientes, productos, pedidos
 from api.v1 import rutas_pedidos
 
+# AL INICIO, después de los imports
+print("=" * 70)
+print("📦 IMPORTANDO ROUTERS...")
+
+from api.endpoints import clientes
+print(f"✅ Router clientes importado: {clientes.router}")
+print(f"   Prefix: {clientes.router.prefix}")
+print(f"   Tags: {clientes.router.tags}")
+
+
 # Función auxiliar para obtener la hora actual en UTC
 def get_utc_now():
     return datetime.now(timezone.utc)
@@ -242,17 +252,37 @@ manager = ConnectionManager()
 # ==================
 # ROUTERS
 # ==================
-#app.include_router(auth.router)
-#app.include_router(vendedor_ops.router)
-app.include_router(vendedor_stats.router)
-app.include_router(vendedor_estadisticas.router)
-app.include_router(rutas_pedidos.router)
-app.include_router(evaluaciones.router)
-app.include_router(evaluador_ws.router)
-app.include_router(rutas_vfp.router)
-app.include_router(panel_sync.router)
-app.include_router(clientes.router)
+# DONDE REGISTRAS LOS ROUTERS
+print("=" * 70)
+print("📌 REGISTRANDO ROUTERS EN FASTAPI...")
 
+app.include_router(vendedor_stats.router)
+print("✅ vendedor_stats registrado")
+
+app.include_router(vendedor_estadisticas.router)
+print("✅ vendedor_estadisticas registrado")
+
+app.include_router(rutas_pedidos.router)
+print("✅ rutas_pedidos registrado")
+
+app.include_router(evaluaciones.router)
+print("✅ evaluaciones registrado")
+
+app.include_router(evaluador_ws.router)
+print("✅ evaluador_ws registrado")
+
+app.include_router(rutas_vfp.router)
+print("✅ rutas_vfp registrado")
+
+app.include_router(panel_sync.router)
+print("✅ panel_sync registrado")
+
+app.include_router(clientes.router)
+print("✅ clientes registrado")
+
+print("=" * 70)
+print(f"📊 TOTAL DE RUTAS REGISTRADAS: {len(app.routes)}")
+print("=" * 70)
 # =============================================
 # FUNCIONES AUXILIARES  
 # =============================================
@@ -2676,3 +2706,4 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
