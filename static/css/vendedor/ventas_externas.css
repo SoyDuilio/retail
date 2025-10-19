@@ -1030,6 +1030,13 @@
     animation: fadeIn 0.2s ease;
 }
 
+/* ✅ AGREGAR ESTO */
+.modal-overlay.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
