@@ -1,4 +1,13 @@
+print("=" * 50)
+print("🔵 CLIENTES.PY SE ESTÁ IMPORTANDO")
+print("=" * 50)
+
 from fastapi import APIRouter, Depends, HTTPException, status
+print("=" * 50)
+print("🟢 CLIENTES.PY IMPORTADO CORRECTAMENTE")
+print(f"Router prefix: {router.prefix if 'router' in locals() else 'NO DEFINIDO'}")
+print("=" * 50)
+
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 
@@ -238,3 +247,4 @@ async def activar_cliente(
     
     db_cliente = crud_cliente.get(db, id=cliente_id)
     return db_cliente
+
