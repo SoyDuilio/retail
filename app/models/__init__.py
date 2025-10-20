@@ -3,6 +3,8 @@ from .client_models import ClienteModel, HistorialCreditoModel, SegmentoClienteM
 from .product_models import ProductoModel, CategoriaModel, UnidadMedidaModel, PrecioClienteModel, MovimientoStockModel
 from .evaluation_models import CalificacionModel
 from .order_models import AuditoriaPedidoModel
+from .ubicacion_models import UbicacionVendedorModel  # ✅ AGREGAR
+
 #from .order_models import PedidoModel, PedidoItemModel  # COMENTAR
 #from .message_models import MensajeModel, ConversacionVozModel  # COMENTAR
 
@@ -16,12 +18,8 @@ __all__ = [
     # Product models  
     "ProductoModel", "CategoriaModel", "UnidadMedidaModel", "PrecioClienteModel",
     "MovimientoStockModel",
-    # evaluation models
+    # Evaluation models
     "CalificacionModel", "AuditoriaPedidoModel",
-   # Order models
-   "AuditoriaPedidoModel"
+    # Ubicacion models
+    "UbicacionVendedorModel"  # ✅ AGREGAR
 ]
-
-
-# Message models
-    #"MensajeModel", "ConversacionVozModel",

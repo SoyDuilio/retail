@@ -10,6 +10,13 @@ from .base import Base
 # Remover la importación de werkzeug
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+# ✅ AGREGAR IMPORT (con TYPE_CHECKING para evitar imports circulares)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.ubicacion_models import UbicacionVendedorModel
+
 #Base = declarative_base()
 
 # Función auxiliar para obtener la hora actual en UTC
@@ -56,7 +63,7 @@ class VendedorModel(Base):
     longitud_actual = Column(Float)
     precision_gps = Column(Float)
     ultima_ubicacion = Column(DateTime)
-    
+
     # Configuraciones
     configuraciones = Column(JSON, default={})
     
@@ -64,6 +71,11 @@ class VendedorModel(Base):
     sesiones = relationship("SesionActivaModel", back_populates="vendedor", cascade="all, delete-orphan")
     # Relación inversa
     pedidos = relationship("PedidoModel", back_populates="vendedor")
+
+    # ✅ Usar string para evitar problemas de importación circular
+    #ubicaciones = relationship("UbicacionVendedorModel", back_populates="vendedor", cascade="all, delete-orphan", lazy="select")
+
+
     
     def set_password(self, password: str):
         """Establece la contraseña hasheada"""
