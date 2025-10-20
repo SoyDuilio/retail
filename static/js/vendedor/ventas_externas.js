@@ -492,6 +492,12 @@ function solicitarUbicacion() {
             if (modal) {
                 modal.classList.add('hidden');
             }
+
+                // Después de actualizar estadoApp.ubicacion, agregar:
+            if (gpsTracker) {
+                gpsTracker.activarDesdeHeader(position);
+            }
+
         },
         (error) => {
             console.error('Error de geolocalización:', error);
@@ -518,6 +524,7 @@ function solicitarUbicacion() {
         },
         options
     );
+
 }
 
 function actualizarEstadoUbicacion() {
