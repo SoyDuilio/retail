@@ -23,7 +23,7 @@ from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni,
 from app.apis.vfp import rutas_vfp
 from app.routers.admin import panel_sync 
 #from app.routers import clientes
-from api.endpoints import clientes
+from api.endpoints import clientes, ubicaciones
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -253,6 +253,7 @@ app.include_router(evaluador_ws.router)
 app.include_router(rutas_vfp.router)
 app.include_router(panel_sync.router)
 app.include_router(clientes.router,tags=["clientes"])
+app.include_router(ubicaciones.router, tags=["ubicaciones"])
 
 # =============================================
 # FUNCIONES AUXILIARES  
