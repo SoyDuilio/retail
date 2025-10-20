@@ -1,0 +1,315 @@
+/* ============================================
+   GPS TRACKER WIDGET - FLOTANTE
+============================================ */
+
+.gps-tracker-widget {
+    position: fixed;
+    bottom: 80px; /* Encima de la barra inferior */
+    right: 16px;
+    z-index: 999;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gps-widget-content {
+    background: linear-gradient(135deg, rgba(37, 47, 106, 0.95), rgba(59, 69, 143, 0.95));
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ============================================
+   VERSIÓN MINIMIZADA
+============================================ */
+
+.gps-tracker-widget.minimized .gps-widget-content {
+    padding: 12px 16px;
+}
+
+.gps-minimized {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gps-tracker-widget:not(.minimized) .gps-minimized {
+    display: none;
+}
+
+.gps-pulse-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gps-icon {
+    color: #10b981;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+    position: relative;
+    z-index: 2;
+}
+
+.gps-pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #10b981;
+    border-radius: 50%;
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.gps-text-min {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   VERSIÓN EXPANDIDA
+============================================ */
+
+.gps-expanded {
+    display: none;
+}
+
+.gps-tracker-widget:not(.minimized) .gps-expanded {
+    display: block;
+}
+
+.gps-tracker-widget:not(.minimized) .gps-widget-content {
+    padding: 16px;
+    width: 280px;
+}
+
+.gps-header-exp {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.gps-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gps-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.gps-subtitle {
+    color: #10b981;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ============================================
+   ESTADÍSTICAS
+============================================ */
+
+.gps-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.gps-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* Clases de estado */
+.stat-value.calidad-excelente {
+    color: #10b981;
+}
+
+.stat-value.calidad-buena {
+    color: #3b82f6;
+}
+
+.stat-value.calidad-regular {
+    color: #f59e0b;
+}
+
+.stat-value.calidad-mala {
+    color: #ef4444;
+}
+
+.stat-value.bateria-alta {
+    color: #10b981;
+}
+
+.stat-value.bateria-media {
+    color: #f59e0b;
+}
+
+.stat-value.bateria-baja {
+    color: #ef4444;
+}
+
+/* ============================================
+   FOOTER
+============================================ */
+
+.gps-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.icon-clock {
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.gps-footer span {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* ============================================
+   BOTÓN TOGGLE
+============================================ */
+
+.gps-toggle-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gps-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+}
+
+.gps-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.icon-expand,
+.icon-collapse {
+    color: #fff;
+    transition: all 0.3s;
+}
+
+.gps-tracker-widget.minimized .icon-expand {
+    display: block;
+}
+
+.gps-tracker-widget.minimized .icon-collapse {
+    display: none;
+}
+
+.gps-tracker-widget:not(.minimized) .icon-expand {
+    display: none;
+}
+
+.gps-tracker-widget:not(.minimized) .icon-collapse {
+    display: block;
+}
+
+/* ============================================
+   ESTADOS
+============================================ */
+
+.gps-tracker-widget[data-status="error"] .gps-icon {
+    color: #ef4444;
+}
+
+.gps-tracker-widget[data-status="error"] .gps-pulse-ring {
+    border-color: #ef4444;
+}
+
+.gps-tracker-widget[data-status="stopped"] .gps-icon {
+    color: #94a3b8;
+}
+
+.gps-tracker-widget[data-status="stopped"] .gps-pulse-ring {
+    display: none;
+}
+
+/* ============================================
+   RESPONSIVE
+============================================ */
+
+@media (max-width: 640px) {
+    .gps-tracker-widget {
+        bottom: 70px;
+        right: 12px;
+    }
+    
+    .gps-tracker-widget:not(.minimized) .gps-widget-content {
+        width: calc(100vw - 24px);
+        max-width: 320px;
+    }
+}
