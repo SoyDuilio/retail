@@ -413,3 +413,97 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+
+
+
+/* ============================================
+   TRACKING MAPA
+============================================ */
+
+#mapaTracking {
+    z-index: 1;
+}
+
+.custom-marker {
+    background: transparent;
+    border: none;
+}
+
+.marker-vendedor {
+    position: relative;
+    color: #10b981;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.marker-vendedor.estado-reciente {
+    color: #f59e0b;
+}
+
+.marker-vendedor.estado-inactivo {
+    color: #94a3b8;
+}
+
+.marker-label {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.popup-vendedor {
+    min-width: 200px;
+}
+
+.vendedor-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.vendedor-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.vendedor-item.estado-activo {
+    border-left-color: #10b981;
+}
+
+.vendedor-item.estado-reciente {
+    border-left-color: #f59e0b;
+}
+
+.vendedor-item.estado-inactivo {
+    border-left-color: #94a3b8;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.estado-activo .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.estado-reciente .status-dot {
+    background: #f59e0b;
+}
+
+.estado-inactivo .status-dot {
+    background: #94a3b8;
+}
