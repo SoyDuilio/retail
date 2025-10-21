@@ -23,7 +23,7 @@ from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni,
 from app.apis.vfp import rutas_vfp
 from app.routers.admin import panel_sync 
 #from app.routers import clientes
-from api.endpoints import clientes, ubicaciones
+from api.endpoints import clientes, ubicaciones, vfp_test
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -254,6 +254,7 @@ app.include_router(rutas_vfp.router)
 app.include_router(panel_sync.router)
 app.include_router(clientes.router,tags=["clientes"])
 app.include_router(ubicaciones.router, tags=["ubicaciones"])
+app.include_router(vfp_test.router, tags=["VFP Testing"])
 
 # =============================================
 # FUNCIONES AUXILIARES  
@@ -2605,4 +2606,5 @@ async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
