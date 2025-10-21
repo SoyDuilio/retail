@@ -51,7 +51,7 @@ async def test_consulta_productos(
         resultado = []
         for p in productos:
             resultado.append({
-                "producto_id": p.producto_id,
+                "id": p.id,
                 "codigo": p.codigo,
                 "nombre": p.nombre,
                 "precio": float(p.precio_venta),
@@ -86,26 +86,26 @@ async def test_crear_producto(
     try:
         # Verificar si ya existe
         existe = db.query(ProductoModel).filter(
-            ProductoModel.codigo == producto.codigo
+            ProductoModel.codigo_producto == producto.codigo
         ).first()
         
         if existe:
             return {
                 "success": False,
                 "message": f"Producto {producto.codigo} ya existe",
-                "producto_id": existe.producto_id
+                "id": existe.id
             }
         
         # Crear producto
         nuevo = ProductoModel(
-            codigo=producto.codigo,
+            codigo_producto=producto.codigo,
             nombre=producto.nombre,
             descripcion=f"Producto de prueba creado desde VFP",
             precio_venta=producto.precio,
             stock_actual=producto.stock,
             stock_minimo=0,
             categoria_id=1,  # Categoría por defecto
-            unidad_medida_id=1,  # Unidad por defecto
+            unidad_medida_id=None,  # Unidad por defecto
             activo=True
         )
         
@@ -116,8 +116,8 @@ async def test_crear_producto(
         return {
             "success": True,
             "message": "Producto creado exitosamente",
-            "producto_id": nuevo.producto_id,
-            "codigo": nuevo.codigo
+            "producto_id": nuevo.id,
+            "codigo": nuevo.codigo_producto
         }
         
     except Exception as e:
@@ -140,7 +140,7 @@ async def test_actualizar_stock(
     """Actualizar stock de un producto"""
     try:
         producto = db.query(ProductoModel).filter(
-            ProductoModel.codigo == codigo
+            ProductoModel.codigo_producto == codigo
         ).first()
         
         if not producto:
@@ -164,5 +164,4 @@ async def test_actualizar_stock(
         
     except Exception as e:
         db.rollback()
-
-        raise HTTPException(status_code=500, detail=str(e))    
+        raise HTTPException(status_code=500, detail=str(e))
