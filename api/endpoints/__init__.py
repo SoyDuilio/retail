@@ -4,5 +4,6 @@ Endpoints de la API
 """
 
 from . import clientes
+from . import vfp_test
 
-__all__ = ["clientes"]
+__all__ = ["clientes", "vfp_test"]
