@@ -29,7 +29,7 @@ async def test_ping(token_ok: bool = Depends(verificar_token_vfp)):
     """Prueba básica de conexión"""
     return {
         "success": True,
-        "message": "Conexión exitosa desde VFP",
+        "message": "Conexión exitosa desde VFP - [by DuilioRestuccia]",
         "timestamp": "2024-01-01 10:00:00"
     }
 
@@ -51,11 +51,14 @@ async def test_consulta_productos(
         resultado = []
         for p in productos:
             resultado.append({
-                "id": p.id,
-                "codigo": p.codigo,
+                "producto_id": p.id,
+                "codigo": p.codigo_producto,
                 "nombre": p.nombre,
-                "precio": float(p.precio_venta),
-                "stock": p.stock_actual
+                "descripcion": p.descripcion,
+                "precio_unitario": float(p.precio_unitario) if p.precio_unitario else 0.0,
+                "precio_mayorista": float(p.precio_mayorista) if p.precio_mayorista else 0.0,
+                "precio_distribuidor": float(p.precio_distribuidor) if p.precio_distribuidor else 0.0,
+                "activo": p.activo
             })
         
         return {
@@ -73,8 +76,9 @@ async def test_consulta_productos(
 class ProductoTestCreate(BaseModel):
     codigo: str
     nombre: str
-    precio: float
-    stock: int
+    precio_unitario: float
+    precio_mayorista: Optional[float] = None
+    precio_distribuidor: Optional[float] = None
 
 @router.post("/api/vfp/test/producto/crear")
 async def test_crear_producto(
@@ -93,19 +97,18 @@ async def test_crear_producto(
             return {
                 "success": False,
                 "message": f"Producto {producto.codigo} ya existe",
-                "id": existe.id
+                "producto_id": existe.id
             }
         
         # Crear producto
         nuevo = ProductoModel(
             codigo_producto=producto.codigo,
             nombre=producto.nombre,
-            descripcion=f"Producto de prueba creado desde VFP",
-            precio_venta=producto.precio,
-            stock_actual=producto.stock,
-            stock_minimo=0,
+            descripcion=f"Producto de prueba creado desde VFP  - [by DuilioRestuccia]",
+            precio_unitario=producto.precio_unitario,
+            precio_mayorista=producto.precio_mayorista,
+            precio_distribuidor=producto.precio_distribuidor,
             categoria_id=1,  # Categoría por defecto
-            unidad_medida_id=None,  # Unidad por defecto
             activo=True
         )
         
@@ -128,16 +131,18 @@ async def test_crear_producto(
 # PRUEBA 4: ACTUALIZACIÓN (PUT)
 # ============================================
 class ProductoTestUpdate(BaseModel):
-    stock: int
+    precio_unitario: Optional[float] = None
+    precio_mayorista: Optional[float] = None
+    precio_distribuidor: Optional[float] = None
 
-@router.put("/api/vfp/test/producto/{codigo}/stock")
-async def test_actualizar_stock(
+@router.put("/api/vfp/test/producto/{codigo}/precio")
+async def test_actualizar_precio(
     codigo: str,
     datos: ProductoTestUpdate,
     token_ok: bool = Depends(verificar_token_vfp),
     db: Session = Depends(get_db)
 ):
-    """Actualizar stock de un producto"""
+    """Actualizar precios de un producto"""
     try:
         producto = db.query(ProductoModel).filter(
             ProductoModel.codigo_producto == codigo
@@ -149,17 +154,27 @@ async def test_actualizar_stock(
                 "message": f"Producto {codigo} no encontrado"
             }
         
-        stock_anterior = producto.stock_actual
-        producto.stock_actual = datos.stock
+        cambios = []
+        
+        if datos.precio_unitario is not None:
+            producto.precio_unitario = datos.precio_unitario
+            cambios.append(f"precio_unitario: {datos.precio_unitario}")
+            
+        if datos.precio_mayorista is not None:
+            producto.precio_mayorista = datos.precio_mayorista
+            cambios.append(f"precio_mayorista: {datos.precio_mayorista}")
+            
+        if datos.precio_distribuidor is not None:
+            producto.precio_distribuidor = datos.precio_distribuidor
+            cambios.append(f"precio_distribuidor: {datos.precio_distribuidor}")
         
         db.commit()
         
         return {
             "success": True,
-            "message": "Stock actualizado",
+            "message": "Precios actualizados",
             "codigo": codigo,
-            "stock_anterior": stock_anterior,
-            "stock_nuevo": datos.stock
+            "cambios": cambios
         }
         
     except Exception as e:
