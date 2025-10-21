@@ -1,6 +1,6 @@
 # 1. IMPORTS CORRECTOS AL INICIO DEL ARCHIVO:
 # Reemplaza los imports que tienes por estos:
-
+echo "# Force redeploy" >> main.py
 from sqlalchemy import and_, or_
 from fastapi import FastAPI, HTTPException, Depends, status, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -2608,3 +2608,4 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
