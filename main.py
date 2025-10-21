@@ -22,7 +22,7 @@ from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
 from app.apis.vfp import rutas_vfp
 from app.routers.admin import panel_sync 
-from api.endpoints import clientes
+from api.endpoints import clientes, ubicaciones, vfp_test
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
 # 1. Obtiene la ruta del directorio donde se encuentra este archivo (main.py)
@@ -291,6 +291,8 @@ print("✅ panel_sync registrado")
 
 app.include_router(clientes.router)
 print("✅ clientes registrado")
+
+app.include_router(vfp_test.router, tags=["VFP Testing"])
 
 print("=" * 70)
 print(f"📊 TOTAL DE RUTAS REGISTRADAS: {len(app.routes)}")
@@ -2737,6 +2739,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
 
 
 
