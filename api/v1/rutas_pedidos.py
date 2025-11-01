@@ -100,15 +100,73 @@ async def crear_pedido(
                 raise HTTPException(status_code=404, detail=f"Producto {item.producto_id} no encontrado")
             
             tipo_cliente_id = item.override_tipo_cliente_id or cliente.tipo_cliente_id
-            
+
+            # 🔍 DEBUG COMPLETO
+            print("\n" + "="*60)
+            print(f"🔍 BUSCANDO PRECIO PARA ITEM")
+            print("="*60)
+            print(f"Producto ID: {item.producto_id}")
+            print(f"Producto Nombre: {producto.nombre}")
+            print(f"Cliente ID: {pedido_data.cliente_id}")
+            print(f"Cliente Nombre: {cliente.nombre_comercial}")
+            print(f"Cliente tipo_cliente_id: {cliente.tipo_cliente_id}")
+            print(f"Tipo Cliente ID final: {tipo_cliente_id}")
+            print(f"Tipo Pago del pedido (frontend): '{pedido_data.tipo_pago}'")
+            print(f"Tipo Pago del pedido (upper): '{pedido_data.tipo_pago.upper()}'")
+
+            # ✅ Determinar tipo de pago
+            tipo_pago_bd = "credito" if pedido_data.tipo_pago.upper() == "CREDITO" else "contado"
+
+            print(f"Tipo Pago para BD: '{tipo_pago_bd}'")
+            print("="*60)
+
+            # Buscar precio
             precio_query = db.execute(
-                text("SELECT precio FROM precios_cliente WHERE producto_id = :pid AND tipo_cliente_id = :tid"),
-                {"pid": item.producto_id, "tid": tipo_cliente_id}
+                text("""
+                    SELECT precio 
+                    FROM precios_cliente 
+                    WHERE producto_id = :pid 
+                    AND tipo_cliente_id = :tid
+                    AND tipo_pago = :tipo_pago
+                    AND activo = true
+                """),
+                {
+                    "pid": item.producto_id, 
+                    "tid": tipo_cliente_id,
+                    "tipo_pago": tipo_pago_bd
+                }
             ).first()
-            
+
+            print(f"📊 Resultado de búsqueda: {precio_query}")
+
             if not precio_query:
-                raise HTTPException(status_code=400, detail=f"Sin precio para {producto.nombre}")
-            
+                # Mostrar precios disponibles
+                print(f"❌ NO SE ENCONTRÓ PRECIO")
+                print(f"🔎 Verificando precios disponibles para producto_id={item.producto_id}:")
+                
+                todos_precios = db.execute(
+                    text("""
+                        SELECT producto_id, tipo_cliente_id, tipo_pago, precio, activo
+                        FROM precios_cliente 
+                        WHERE producto_id = :pid
+                        ORDER BY tipo_cliente_id, tipo_pago
+                    """),
+                    {"pid": item.producto_id}
+                ).fetchall()
+                
+                for precio in todos_precios:
+                    print(f"   → producto_id={precio[0]}, tipo_cliente_id={precio[1]}, tipo_pago='{precio[2]}', precio={precio[3]}, activo={precio[4]}")
+                
+                print("="*60 + "\n")
+                
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"No existe precio {tipo_pago_bd.upper()} para '{producto.nombre}'. Configure el precio antes de vender."
+                )
+
+            print(f"✅ Precio encontrado: S/ {precio_query[0]}")
+            print("="*60 + "\n")
+
             precio_unitario = float(precio_query[0])
             item_subtotal = precio_unitario * item.cantidad
             
@@ -159,5 +217,4 @@ async def crear_pedido(
     except Exception as e:
         db.rollback()
         print(f"❌ Error: {e}")
-
         raise HTTPException(status_code=500, detail=str(e))
