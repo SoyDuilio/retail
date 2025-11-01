@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import ClienteModel, TipoClienteModel
 from core.auth import get_current_user
 
-router = APIRouter(tags=["clientes"])
+router = APIRouter(prefix="/clientes", tags=["clientes"])
 
 # Token de APIsPeru (desde variables de entorno)
 APISPERU_TOKEN = os.getenv("APISPERU_TOKEN", "")
