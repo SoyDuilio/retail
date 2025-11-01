@@ -18,7 +18,7 @@ from app.schemas.client_schemas import (
 
 from app.apis.utils import (api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona)
 
-router = APIRouter(prefix="/api/clientes", tags=["Clientes"])
+router = APIRouter(prefix="/api/clientes", tags=["clientes"])
 
 # ============================================================================
 # ENDPOINTS PARA GESTIÓN DE CLIENTES
