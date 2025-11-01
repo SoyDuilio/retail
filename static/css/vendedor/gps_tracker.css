@@ -313,3 +313,251 @@
         max-width: 320px;
     }
 }
+
+
+
+
+/* Info de vendedor en widget GPS */
+.gps-vendedor-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid rgba(102, 126, 234, 0.6);
+}
+
+.vendedor-avatar {
+    width: 32px;
+    height: 32px;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.vendedor-avatar svg {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.vendedor-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.vendedor-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    line-height: 1.2;
+}
+
+.vendedor-codigo {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1;
+}
+
+/* Info de ubicación actual */
+.gps-ubicacion-actual {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.gps-ubicacion-actual svg {
+    color: rgba(34, 197, 94, 0.8);
+    flex-shrink: 0;
+}
+
+#gpsUbicacionTexto {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#gpsUbicacionTexto.calidad-excelente {
+    color: #22c55e;
+}
+
+#gpsUbicacionTexto.calidad-buena {
+    color: #84cc16;
+}
+
+#gpsUbicacionTexto.calidad-regular {
+    color: #facc15;
+}
+
+#gpsUbicacionTexto.calidad-mala {
+    color: #f87171;
+}
+
+
+/* ==========================================
+   BARRA INFERIOR CON VENDEDOR + UBICACIÓN
+   ========================================== */
+
+.barra-inferior-vendedor {
+    position: fixed;
+    bottom: 80px;
+    left: 0;
+    right: 70px;
+    background: rgba(30, 41, 59, 0.95); /* ✅ Cambiar de negro a gris azulado */
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 1rem;
+    z-index: 998;
+    border-top: 1px solid rgba(255, 255, 255, 0.2); /* ✅ Borde más visible */
+}
+
+.barra-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Vendedor */
+.vendedor-info-barra {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.vendedor-avatar-barra {
+    width: 36px;
+    height: 36px;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.vendedor-avatar-barra svg {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.vendedor-texto-barra {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+/* Vendedor - ESTILOS BASE */
+.vendedor-nombre-barra {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white !important;
+    line-height: 1.2;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.vendedor-codigo-barra {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6) !important;
+    line-height: 1;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Botón Ubicación - Estado base (SIN ubicación) */
+.btn-ubicacion-barra {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(239, 68, 68, 0.15);
+    border: 2px solid rgba(239, 68, 68, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #fca5a5;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-ubicacion-barra:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Estado CON ubicación activa */
+.btn-ubicacion-barra.ubicacion-activa {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.2) 100%);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #86efac;
+}
+
+.btn-ubicacion-barra.ubicacion-activa:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.3) 100%);
+    border-color: rgba(34, 197, 94, 0.7);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+/* Icono del botón */
+.btn-ubicacion-barra svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+/* Animación de pulso cuando está activo */
+.btn-ubicacion-barra.ubicacion-activa svg {
+    animation: pulsarUbicacion 2s ease-in-out infinite;
+}
+
+@keyframes pulsarUbicacion {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .barra-inferior-vendedor {
+        bottom: 70px;
+        right: 60px;
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .barra-content {
+        gap: 0.75rem;
+    }
+    
+    .vendedor-nombre-barra {
+        font-size: 0.8rem; /* Solo cambiar tamaño en móvil */
+    }
+    
+    .btn-ubicacion-barra {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .vendedor-texto-barra {
+        display: none; /* Ocultar texto en móviles muy pequeños */
+    }
+    
+    .btn-ubicacion-barra span {
+        display: none;
+    }
+}

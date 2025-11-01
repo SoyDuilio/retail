@@ -1,0 +1,349 @@
+/* ==========================================
+   HEADER - ALTURA MÍNIMA, UNA LÍNEA
+   ========================================== */
+
+.header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    overflow: visible;
+    height: auto;
+}
+
+.header-content-simple {
+    display: flex;
+    flex-direction: row; /* ✅ SIEMPRE horizontal */
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    gap: 1rem;
+    height: auto;
+    min-height: 60px; /* ✅ Altura mínima fija */
+    max-height: 60px; /* ✅ Altura máxima fija */
+    flex-wrap: nowrap; /* ✅ NUNCA envolver */
+    overflow: visible;
+}
+
+/* ==========================================
+   CHIP CLIENTE
+   ========================================== */
+
+.chip-cliente-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem 0.75rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    height: 44px; /* ✅ Altura fija */
+    min-width: 200px;
+    max-width: calc(100% - 80px); /* ✅ Dejar espacio para logout */
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+
+.chip-cliente-header.hidden {
+    display: none;
+}
+
+/* ✅ NUEVO: Botón cambiar cliente */
+/* Botón cambiar cliente */
+.chip-btn-cambiar {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 255, 255, 0.7);
+    flex-shrink: 0;
+}
+
+.chip-btn-cambiar:hover,
+.chip-btn-cambiar:active {
+    background: rgba(239, 68, 68, 0.3);
+    color: white;
+    transform: scale(1.1);
+}
+
+.chip-btn-cambiar svg {
+    width: 14px;
+    height: 14px;
+}
+
+
+.chip-icono {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.chip-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#chipClienteTipoHeader{
+        color: #fbbf24;
+}
+
+.chip-nombre {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.chip-tipo {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #fff;
+    font-weight: 700;
+    width: fit-content;
+    white-space: nowrap;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
+}
+
+/* Botón crédito */
+/* Botón crédito */
+.btn-credito-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.3rem 0.6rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: white;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    white-space: nowrap;
+    height: 28px;
+}
+
+.btn-credito-mini:hover,
+.btn-credito-mini:active {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Toggle pago */
+.toggle-pago-header {
+    display: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 0.25rem;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    margin-left: auto; /* ✅ Empujar a la derecha */
+    margin-right: 0.5rem; /* ✅ Espacio antes del logout */
+}
+
+.toggle-pago-header.activo {
+    display: flex !important;
+}
+
+.toggle-pago-header.hidden {
+    display: none;
+}
+
+.toggle-pago-header input[type="radio"] {
+    display: none;
+}
+
+.pill-pago {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+}
+
+.icon-tiny {
+    width: 16px;
+    height: 16px;
+}
+
+.toggle-pago-header input[type="radio"]:checked + .pill-pago {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Logout */
+
+
+/* ==========================================
+   BOTÓN LOGOUT
+   ========================================== */
+
+.btn-logout {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-logout:hover {
+    background: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.6);
+    transform: scale(1.05);
+}
+
+.btn-logout .icon {
+    width: 20px;
+    height: 20px;
+    color: #fca5a5;
+}
+
+
+/* Responsive: botones siempre visibles */
+@media (max-width: 768px) {
+    .header-content-simple {
+        padding: 0.6rem 0.5rem;
+        gap: 0.75rem;
+        min-height: 56px;
+        max-height: 56px;
+    }
+    
+    .chip-cliente-header {
+        height: 40px;
+        padding: 0.4rem 0.6rem;
+        max-width: calc(100% - 60px);
+    }
+    
+    #chipClienteTipoHeader{
+        color: #fbbf24;
+    }
+
+    .chip-nombre {
+        font-size: 0.85rem;
+    }
+    
+    .chip-tipo {
+        font-size: 0.65rem;
+        padding: 0.1rem 0.4rem;
+    }
+    
+    .btn-credito-mini {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        height: 26px;
+    }
+    
+    .btn-logout {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ✅ NUEVO: Media query para desktop mediano */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .chip-cliente-header {
+        max-width: 300px; /* ✅ Más pequeño en tablets */
+    }
+    
+    .header-content-simple {
+        gap: 0.75rem;
+        padding: 0.75rem 0.75rem;
+    }
+}
+
+/* ✅ NUEVO: Desktop grande */
+@media (min-width: 1025px) {
+    .chip-cliente-header {
+        max-width: 400px; /* ✅ Más espacio en desktop */
+    }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .chip-cliente-header {
+        min-width: 150px;
+        flex-wrap: wrap;
+        padding: 0.6rem;
+        top:0.1em;
+    }
+    
+    .chip-info {
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .chip-nombre {
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .btn-credito-mini {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-credito-mini span:last-child {
+        display: none; /* Ocultar texto "Ver crédito" */
+    }
+    
+    .pill-pago {
+        padding: 0.45rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    
+    .icon-tiny {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Prevenir scroll horizontal */
+body, html {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+.container-main {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0 0.5rem;
+}
+
+.header-sticky {
+    max-width: 100vw;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}

@@ -1,0 +1,629 @@
+/* ==========================================
+   VARIABLES Y RESET
+   ========================================== */
+
+:root {
+    --color-primary: #667eea;
+    --color-secondary: #764ba2;
+    --color-success: #22c55e;
+    --color-warning: #fbbf24;
+    --color-danger: #ef4444;
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+}
+
+/* ==========================================
+   HEADER COMPACTO
+   ========================================== */
+
+.header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem; /* ✅ Reducido de 0.75rem */
+    gap: 1rem;
+}
+
+/* Vendedor mini */
+.vendedor-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.avatar-mini {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-mini {
+    width: 18px;
+    height: 18px;
+    color: white;
+}
+
+.vendedor-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.vendedor-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.vendedor-codigo {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Chip cliente mini */
+.chip-cliente-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    padding: 0.4rem 0.8rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.chip-cliente-mini.hidden {
+    display: none;
+}
+
+.chip-icono {
+    font-size: 1.2rem;
+}
+
+.chip-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.chip-nombre {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: white;
+}
+
+.chip-tipo {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 8px;
+    background: rgba(255, 107, 107, 0.8);
+    color: white;
+    width: fit-content;
+}
+
+/* Botón crédito mini */
+.btn-credito-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.35rem 0.7rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: white;
+    transition: all 0.2s;
+}
+
+.btn-credito-mini:hover,
+.btn-credito-mini:active {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-credito-mini.estado-normal {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.2);
+}
+
+.btn-credito-mini.estado-advertencia {
+    border-color: #ffc107;
+    background: rgba(255, 193, 7, 0.2);
+}
+
+.btn-credito-mini.estado-moroso {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.2);
+}
+
+/* Toggle CONTADO/CRÉDITO en header */
+.toggle-pago-header {
+    display: flex;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 0.25rem;
+    gap: 0.25rem;
+}
+
+.toggle-pago-header.hidden {
+    display: none;
+}
+
+.toggle-pago-header input[type="radio"] {
+    display: none;
+}
+
+.pill-pago {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.icon-tiny {
+    width: 16px;
+    height: 16px;
+}
+
+.toggle-pago-header input[type="radio"]:checked + .pill-pago {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.toggle-pago-header .pill-pago:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.toggle-pago-header input[type="radio"]:checked + .pill-pago:hover {
+    background: white;
+}
+
+/* ==========================================
+   FOOTER CON COMPARACIÓN HORIZONTAL
+   ========================================== */
+
+.pedido-footer-nuevo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(180deg, rgba(22, 163, 74, 0.95) 0%, rgba(21, 128, 61, 0.95) 100%);
+    border-radius: 0 0 16px 16px;
+    margin-top: 1rem;
+}
+
+.footer-total-principal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+}
+
+.total-monto {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+}
+
+.footer-comparacion {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 0.75rem;
+}
+
+.footer-comparacion.hidden {
+    display: none;
+}
+
+.comparacion-grid {
+    display: flex;
+    flex-direction: row; /* ✅ SIEMPRE horizontal */
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 1rem; /* ✅ Reducido para pantallas pequeñas */
+    flex-wrap: nowrap; /* ✅ No permitir wrap */
+}
+
+.comparacion-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+}
+
+.comparacion-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.comparacion-item.seleccionado {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.comparacion-divider {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    flex: 0 0 auto;
+    margin: 0 0.25rem;
+}
+
+.comparacion-ahorro {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.75rem;
+    border-radius: 12px;
+    flex: 0 0 auto;
+}
+
+.ahorro-icono {
+    font-size: 1.1rem; /* ✅ Ajustado */
+}
+
+.ahorro-valor {
+    font-size: 1rem; /* ✅ Ajustado */
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+
+.btn-confirmar-pedido {
+    background: white;
+    color: #16a34a;
+    border: none;
+    padding: 0.9rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-confirmar-pedido:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================
+   TOOLTIP MANUAL
+   ========================================== */
+
+/* ==========================================
+   TARJETA DE INFORMACIÓN CREDITICIA
+   ========================================== */
+
+.tooltip-manual {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 1.5rem;
+    min-width: 320px;
+    max-width: 380px;
+    position: fixed;
+    z-index: 99999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    animation: fadeInScale 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fadeInScale {
+    from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.9); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) scale(1); 
+    }
+}
+
+/* Overlay oscuro */
+.tooltip-manual::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: -1;
+}
+
+/* Botón cerrar */
+.tooltip-manual::after {
+    content: '✕';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    line-height: 28px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.tooltip-manual:hover::after {
+    background: rgba(239, 68, 68, 0.3);
+    color: white;
+    transform: scale(1.1);
+}
+
+.credito-popover-content {
+    font-size: 0.9rem;
+    color: white;
+}
+
+.credito-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.credito-row:last-child {
+    border-bottom: none;
+}
+
+.credito-row .label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.credito-row .value {
+    font-weight: 600;
+    color: white;
+    font-size: 1rem;
+}
+
+.credito-row.highlighted {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+    padding: 1rem;
+    border-radius: 12px;
+    margin: 0.5rem 0;
+    border: 2px solid rgba(34, 197, 94, 0.3);
+}
+
+.credito-row.highlighted .label {
+    color: #86efac;
+    font-size: 1rem;
+}
+
+.credito-row.highlighted .value {
+    color: #22c55e;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.text-danger {
+    color: #f87171 !important;
+}
+
+.credito-estado-texto {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.credito-estado-texto.al-dia {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.credito-estado-texto.moroso {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    margin: 0.75rem 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .tooltip-manual {
+        min-width: 280px;
+        max-width: calc(100vw - 2rem);
+        padding: 1.25rem;
+    }
+}
+
+/* ✅ Alternativa: Posicionar debajo del botón sin desbordar */
+/*
+.tooltip-manual.positioned {
+    position: absolute;
+    left: auto;
+    top: auto;
+    transform: none;
+}
+*/
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .toggle-pago-header {
+        display: flex; /* ✅ Mostrar también en móvil */
+        width: 100%;
+        justify-content: center;
+        margin: 0.5rem 0;
+    }
+    
+    .pill-pago {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .comparacion-divider {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .toggle-pago-header {
+        display: flex; /* Mostrar en desktop */
+    }
+}
+
+.btn-gps-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: white;
+    transition: all 0.2s;
+}
+
+.btn-gps-header:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-gps-header.ubicacion-activa {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.2);
+}
+
+/* Header simplificado */
+.header-content-nuevo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Info vendedor en footer GPS */
+.gps-tracker-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-top: 0.5rem;
+}
+
+.vendedor-mini-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vendedor-mini-footer .avatar-mini {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vendedor-mini-footer .icon-mini {
+    width: 16px;
+    height: 16px;
+    color: white;
+}
+
+.vendedor-texto-mini {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.ubicacion-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+
+/* Animación de actualización de total */
+@keyframes spinTotal {
+    0% { transform: rotateY(0deg); opacity: 1; }
+    50% { transform: rotateY(90deg); opacity: 0.3; }
+    100% { transform: rotateY(0deg); opacity: 1; }
+}
+
+.total-monto.actualizando {
+    animation: spinTotal 0.5s ease-in-out;
+}
+
+.comp-valor.actualizando {
+    animation: spinTotal 0.5s ease-in-out;
+}
