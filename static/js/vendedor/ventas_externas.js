@@ -1108,30 +1108,46 @@ function mostrarResultadosProductos(productos) {
     let html = '';
     
     productos.forEach(producto => {
-        // Guardar referencia global
         window['producto_' + producto.id] = producto;
         
         const estaEnPedido = estadoApp.pedido.some(item => item.producto_id === producto.id);
         const estaSeleccionado = estadoApp.productosSeleccionados.has(producto.id);
         
+        // ✅ Determinar estado de stock
+        const stock = producto.stock_disponible || 0;
+        let stockClase = '';
+        let stockIcono = '📦';
+        
+        if (stock === 0) {
+            stockClase = 'sin-stock';
+            stockIcono = '❌';
+        } else if (stock < 10) {
+            stockClase = 'stock-bajo';
+            stockIcono = '⚠️';
+        }
+        
         html += `
-            <div class="item-producto-dropdown ${estaSeleccionado ? 'seleccionado' : ''} ${estaEnPedido ? 'ya-agregado' : ''}" 
-                 onclick="if(!${estaEnPedido}) toggleSeleccionProducto(${producto.id})">
+            <div class="item-producto-dropdown ${estaSeleccionado ? 'seleccionado' : ''} ${estaEnPedido ? 'ya-agregado' : ''} ${stockClase}" 
+                 onclick="if(!${estaEnPedido} && ${stock} > 0) toggleSeleccionProducto(${producto.id})">
                 <input 
                     type="checkbox" 
                     class="producto-checkbox"
                     ${estaSeleccionado ? 'checked' : ''}
-                    ${estaEnPedido ? 'disabled' : ''}
+                    ${estaEnPedido || stock === 0 ? 'disabled' : ''}
                     onclick="event.stopPropagation()"
-                    onchange="toggleSeleccionProducto(${producto.id})"
+                    onchange="if(${stock} > 0) toggleSeleccionProducto(${producto.id})"
                 />
                 <div class="producto-dropdown-info">
                     <div class="producto-dropdown-nombre">${producto.nombre}</div>
                     <div class="producto-dropdown-detalles">
                         <span>Código: ${producto.codigo_producto}</span>
                         ${producto.categoria ? `<span>• ${producto.categoria}</span>` : ''}
+                        <span class="stock-badge ${stockClase}">
+                            ${stockIcono} ${stock} ${stock === 1 ? 'und' : 'unds'}
+                        </span>
                     </div>
                     ${estaEnPedido ? '<div class="producto-ya-agregado">Ya está en el pedido</div>' : ''}
+                    ${stock === 0 ? '<div class="producto-sin-stock">SIN STOCK</div>' : ''}
                 </div>
                 <div class="producto-dropdown-precio">
                     S/ ${parseFloat(producto.precio_unitario).toFixed(2)}
@@ -1143,8 +1159,6 @@ function mostrarResultadosProductos(productos) {
     lista.innerHTML = html;
     actualizarContadorSeleccionados();
     dropdown.classList.remove('hidden');
-
-    // Asegurar z-index alto
     dropdown.style.zIndex = '2000';
 }
 
@@ -1383,10 +1397,39 @@ function mostrarProductosPedido() {
             delete item.esNuevo;
         }
         
+        // ✅ Generar stock aleatorio si no existe (temporal)
+        const producto = window['producto_' + item.producto_id];
+        if (!producto.stock_disponible) {
+            producto.stock_disponible = Math.floor(Math.random() * (500 - 50 + 1)) + 50; // Entre 50 y 500
+        }
+        const stock = producto.stock_disponible;
+        
+        // ✅ Determinar estado de stock
+        let stockHTML = '';
+        let stockClase = '';
+        let btnMasDisabled = '';
+        
+        if (stock === 0) {
+            stockHTML = '<div class="stock-info sin-stock">❌ Sin stock</div>';
+            stockClase = 'sin-stock';
+            btnMasDisabled = 'disabled';
+        } else if (stock < 10) {
+            stockHTML = `<div class="stock-info stock-bajo">⚠️ Quedan ${stock}</div>`;
+            stockClase = 'stock-bajo';
+            btnMasDisabled = item.cantidad >= stock ? 'disabled' : '';
+        } else if (stock < 50) {
+            stockHTML = `<div class="stock-info stock-medio">📦 ${stock} disponibles</div>`;
+            btnMasDisabled = item.cantidad >= stock ? 'disabled' : '';
+        } else {
+            stockHTML = `<div class="stock-info stock-ok">✅ ${stock} disponibles</div>`;
+            btnMasDisabled = item.cantidad >= stock ? 'disabled' : '';
+        }
+        
         div.innerHTML = `
             <div class="producto-info">
                 <div class="producto-nombre">${item.nombre}</div>
                 <div class="producto-codigo">${item.codigo_producto}</div>
+                ${stockHTML}
             </div>
             <div class="producto-cantidad">
                 <button class="btn-cantidad" onclick="cambiarCantidad(${index}, -1)">
@@ -1399,11 +1442,11 @@ function mostrarProductosPedido() {
                     class="cantidad-input" 
                     value="${item.cantidad}"
                     min="1"
-                    max="9999"
+                    max="${stock}"
                     onchange="actualizarCantidadDirecta(${index}, this.value)"
                     onclick="this.select()"
                 />
-                <button class="btn-cantidad" onclick="cambiarCantidad(${index}, 1)">
+                <button class="btn-cantidad" onclick="cambiarCantidad(${index}, 1)" ${btnMasDisabled}>
                     <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -1447,30 +1490,35 @@ function mostrarProductosPedido() {
 
 
 // 4️⃣ En actualizarCantidadDirecta() - AGREGAR
-function actualizarCantidadDirecta(index, valor) {
-    const cantidad = parseInt(valor);
-    
-    if (isNaN(cantidad) || cantidad < 1) {
-        Toast.warning('La cantidad mínima es 1');
-        mostrarProductosPedido();
-        return;
-    }
-    
-    if (cantidad > 9999) {
-        Toast.warning('La cantidad máxima es 9999');
-        mostrarProductosPedido();
-        return;
-    }
-    
+function actualizarCantidadDirecta(index, nuevaCantidadStr) {
+    const nuevaCantidad = parseInt(nuevaCantidadStr);
     const item = estadoApp.pedido[index];
-    item.cantidad = cantidad;
-    item.subtotal = item.cantidad * item.precio_unitario;
+    const producto = window['producto_' + item.producto_id];
+    const stock = producto?.stock_disponible || 999;
+    
+    // ✅ Validar entrada
+    if (isNaN(nuevaCantidad) || nuevaCantidad < 1) {
+        Toast.warning('Cantidad mínima: 1');
+        mostrarProductosPedido(); // Restaurar valor anterior
+        return;
+    }
+    
+    // ✅ Validar stock
+    if (nuevaCantidad > stock) {
+        Toast.warning(`⚠️ Solo hay ${stock} unidades disponibles`);
+        mostrarProductosPedido(); // Restaurar valor anterior
+        return;
+    }
+    
+    // Actualizar
+    item.cantidad = nuevaCantidad;
+    item.subtotal = item.precio_unitario * nuevaCantidad;
     
     mostrarProductosPedido();
-    Toast.success(`Cantidad actualizada: ${cantidad} unidades`);
     
-    // 🎤 AGREGAR ESTO:
-    announceTotal();
+    if (preciosManager) {
+        preciosManager.recalcularPreciosCarrito();
+    }
 }
 
 
@@ -1492,36 +1540,32 @@ function actualizarCantidad(productoId, nuevaCantidad) {
 // 3️⃣ En cambiarCantidad() - MODIFICAR
 function cambiarCantidad(index, delta) {
     const item = estadoApp.pedido[index];
+    const producto = window['producto_' + item.producto_id];
+    const stock = producto?.stock_disponible || 999;
+    
     const nuevaCantidad = item.cantidad + delta;
     
-    if (nuevaCantidad <= 0) {
+    // ✅ Validar límites
+    if (nuevaCantidad < 1) {
         eliminarProducto(index);
         return;
     }
     
+    // ✅ Validar stock
+    if (nuevaCantidad > stock) {
+        Toast.warning(`⚠️ Solo hay ${stock} unidades disponibles`);
+        return;
+    }
+    
+    // Actualizar cantidad
     item.cantidad = nuevaCantidad;
-    item.subtotal = item.cantidad * item.precio_unitario;
+    item.subtotal = item.precio_unitario * nuevaCantidad;
+    
     mostrarProductosPedido();
     
-    // 🎤 Anunciar total
-    announceTotal();
-
-    // ✅ AGREGAR: Actualizar manager de precios
+    // Recalcular totales
     if (preciosManager) {
-        // Buscar el producto en el array del manager
-        const productoId = item.producto_id;
-        const indexManager = preciosManager.productosCarrito.findIndex(
-            p => p.producto_id === productoId
-        );
-        
-        if (indexManager !== -1) {
-            preciosManager.productosCarrito[indexManager].cantidad = nuevaCantidad;
-        }
-        
-        // Recalcular
         preciosManager.recalcularPreciosCarrito();
-        preciosManager.actualizarComparacion();
-        preciosManager.validarTotalContraCredito();
     }
 }
 
