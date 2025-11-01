@@ -10,19 +10,16 @@ from .user_schemas import Vendedor, Evaluador, Supervisor
 from .client_schemas import Cliente
 from .product_schemas import Producto
 
+from .common_schemas import EstadoPedido, TipoVenta, TipoPago
+
 # =============================================
-# ITEMS DE PEDIDO
+# ITEMS DE PEDIDO (MANTENER TODO LO QUE TIENES)
 # =============================================
 
 class PedidoItemBase(BaseModel):
     producto_id: int
     cantidad: int = Field(..., gt=0)
-    ### CAMBIO 1: Eliminamos precio_unitario y descuento_aplicado. ###
-    # El backend los calculará de forma segura basándose en las reglas de negocio.
-    # El frontend ya no es responsable de enviar el precio.
-    # precio_unitario: Decimal = Field(..., ge=0, decimal_places=2)
-    # descuento_aplicado: Optional[Decimal] = Field(default=0, ge=0, le=100, decimal_places=2)
-
+    
     @field_validator('cantidad')
     @classmethod
     def validate_cantidad(cls, v):
@@ -31,29 +28,23 @@ class PedidoItemBase(BaseModel):
         return v
 
 class PedidoItemCreate(PedidoItemBase):
-    ### CAMBIO 2: Añadimos el campo para sobrescribir la tarifa de precio. ###
-    # Si el vendedor quiere dar un precio especial (ej. de Mayorista) a este item,
-    # el frontend enviará aquí el ID del "Tipo de Cliente" a usar para el cálculo.
     override_tipo_cliente_id: Optional[int] = None
-    pass
+    unidad_medida_venta: Optional[str] = Field(default="unidad")  # ✅ Agregar si no existe
 
 class PedidoItemUpdate(BaseModel):
     cantidad: Optional[int] = Field(None, gt=0)
-    # Mantenemos la opción de actualizar precios manualmente aquí,
-    # ya que podría ser una acción permitida para un supervisor.
     precio_unitario: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
     descuento_aplicado: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
 
-class PedidoItem(BaseModel): ### CAMBIO 3: Schema de lectura completo para el item ###
+class PedidoItem(BaseModel):
     id: int
     pedido_id: int
     producto_id: int
+    unidad_medida_venta: str  # ✅ Agregar
     cantidad: int
-    precio_unitario: Decimal
-    descuento_aplicado: Optional[Decimal]
+    precio_unitario_venta: Decimal  # ✅ Cambiar nombre si usas precio_unitario
     subtotal: Decimal
-    total: Decimal
-    created_at: datetime
+    created_at: Optional[datetime] = None  # ✅ Hacer opcional
     producto: Optional[Producto] = None
 
     class Config:
@@ -64,11 +55,10 @@ class PedidoItem(BaseModel): ### CAMBIO 3: Schema de lectura completo para el it
 # =============================================
 
 class PedidoBase(BaseModel):
-    # Ya no necesitamos vendedor_id aquí, lo obtendremos del token de autenticación.
-    # vendedor_id: int
     cliente_id: int
     tipo_venta: TipoVenta
     tipo_pago: TipoPago = TipoPago.CREDITO
+    plazo_dias: Optional[int] = Field(0, ge=0, le=60, description="Días de plazo (0-60)")  # ✅ NUEVO
     latitud_pedido: Optional[Decimal] = Field(None, ge=-90, le=90, decimal_places=8)
     longitud_pedido: Optional[Decimal] = Field(None, ge=-180, le=180, decimal_places=8)
     observaciones: Optional[str] = None
@@ -85,34 +75,106 @@ class PedidoCreate(PedidoBase):
 
 class PedidoUpdate(BaseModel):
     tipo_pago: Optional[TipoPago] = None
+    plazo_dias: Optional[int] = Field(None, ge=0, le=60)  # ✅ NUEVO
     observaciones: Optional[str] = None
     items: Optional[List[PedidoItemUpdate]] = None
 
-class Pedido(BaseModel): ### CAMBIO 4: Schema de lectura completo para el pedido ###
+class Pedido(BaseModel):
     id: int
     numero_pedido: str
-    vendedor_id: int  # Añadido para mostrar quién creó el pedido
+    vendedor_id: int
     cliente_id: int
     tipo_venta: TipoVenta
     tipo_pago: TipoPago
+    plazo_dias: int = 0  # ✅ NUEVO
     latitud_pedido: Optional[Decimal]
     longitud_pedido: Optional[Decimal]
     observaciones: Optional[str]
     fecha: date
     hora: time
+    estado: str  # ✅ Agregar si no existe
     subtotal: Decimal
     descuento_total: Decimal
+    descuento_contado_aplicado: Decimal = Decimal('0.00')  # ✅ NUEVO
     total: Decimal
     created_at: datetime
     updated_at: datetime
     vendedor: Optional[Vendedor] = None
     cliente: Optional[Cliente] = None
-    items: List[PedidoItem] = [] # Aseguramos que siempre sea una lista
+    items: List[PedidoItem] = []
     calificacion: Optional['Calificacion'] = None
 
     class Config:
         from_attributes = True
 
+# =====================================================
+# SCHEMAS PARA PRECIOS (ACTUALIZADOS)
+# =====================================================
+
+class CalculoPrecioRequest(BaseModel):
+    """Request para calcular precio de un producto"""
+    producto_id: int
+    tipo_cliente_id: int
+    tipo_pago: str = Field(..., pattern="^(contado|credito)$")
+    cantidad: int = Field(default=1, gt=0)
+
+class PrecioDetalle(BaseModel):
+    """Detalle de precio calculado"""
+    precio_base: Decimal
+    precio_final: Decimal
+    descuento_aplicado: Decimal
+    tipo_descuento: Optional[str] = None
+    valor_descuento: Optional[Decimal] = None
+    subtotal: Decimal
+    es_precio_explicito: bool
+
+class CalculoPrecioResponse(BaseModel):
+    """Response con cálculo de precio"""
+    producto_id: int
+    tipo_cliente_id: int
+    tipo_pago: str
+    cantidad: int
+    precio_info: PrecioDetalle
+
+# ✅ NUEVO: Modelo para items de comparación
+class ItemComparacion(BaseModel):
+    """Item individual para comparación de precios"""
+    producto_id: int = Field(..., gt=0, description="ID del producto")
+    cantidad: int = Field(default=1, gt=0, description="Cantidad a cotizar")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "producto_id": 16,
+                "cantidad": 10
+            }
+        }
+
+class ComparacionPreciosRequest(BaseModel):
+    """Request para comparar precios CONTADO vs CRÉDITO"""
+    cliente_id: int = Field(..., gt=0, description="ID del cliente")
+    items: List[ItemComparacion] = Field(..., min_length=1, description="Lista de productos a comparar")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "cliente_id": 4,
+                "items": [
+                    {"producto_id": 16, "cantidad": 10},
+                    {"producto_id": 17, "cantidad": 5}
+                ]
+            }
+        }
+
+class ComparacionPreciosResponse(BaseModel):
+    """Response con comparación de precios"""
+    items: List[dict]
+    total_credito: Decimal
+    total_contado: Decimal
+    ahorro_contado: Decimal
+    porcentaje_ahorro: Decimal
+
+    
 # =============================================
 # CALIFICACIONES Y EVALUACIONES
 # =============================================

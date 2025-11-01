@@ -39,6 +39,18 @@ class EstadoPedido(str, Enum):
     CANCELADO = "cancelado"
     DEVUELTO = "devuelto"
 
+class TipoVenta(str, Enum):
+    """Tipo de venta del pedido"""
+    EXTERNA = "EXTERNA"
+    INTERNA = "INTERNA"
+
+class TipoPago(str, Enum):
+    """Tipo de pago del pedido"""
+    CONTADO = "CONTADO"
+    CREDITO = "CREDITO"
+    YAPE = "YAPE"
+    PLIN = "PLIN"
+
 class TipoMensaje(str, Enum):
     TEXTO = "texto"
     VOZ = "voz"
