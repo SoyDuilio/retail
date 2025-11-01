@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 # URL de conexión (Railway PostgreSQL)
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:duilia@localhost:5432/pedidos?client_encoding=utf8"
+    "postgresql://postgres:zeGOfXxZUlwuTrykbJJuUMLuBqFdAPoM@yamabiko.proxy.rlwy.net:50232/railway"
 )
 
 # Configuración del engine
@@ -83,4 +83,3 @@ def get_db_info():
             "status": "error",
             "error": str(e)
         }
-

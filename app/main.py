@@ -1,5 +1,6 @@
 # 1. IMPORTS CORRECTOS AL INICIO DEL ARCHIVO:
 # Reemplaza los imports que tienes por estos:
+
 from sqlalchemy import and_, or_
 from fastapi import FastAPI, HTTPException, Depends, status, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +22,8 @@ from google.oauth2 import service_account
 from app.apis.utils import api_client, validar_formato_ruc, validar_formato_dni, procesar_datos_empresa, procesar_datos_persona
 from app.apis.vfp import rutas_vfp
 from app.routers.admin import panel_sync 
-#from app.routers import clientes
+from app.routers import pricing
+from app.routers.vendedor import credito
 from api.endpoints import clientes, ubicaciones, vfp_test
 
 # --- CONSTRUCCIÓN DE RUTA ABSOLUTA PARA CREDENCIALES (VERSIÓN CORREGIDA) ---
@@ -254,7 +256,8 @@ app.include_router(panel_sync.router)
 app.include_router(clientes.router,tags=["clientes"])
 app.include_router(ubicaciones.router, tags=["ubicaciones"])
 app.include_router(vfp_test.router, tags=["VFP Testing"])
-
+app.include_router(pricing.router, prefix="/api")
+app.include_router(credito.router, prefix="/api/vendedor", tags=["vendedor-credito"])
 # =============================================
 # FUNCIONES AUXILIARES  
 # =============================================
@@ -1580,12 +1583,13 @@ class BuscarClienteVozRequest(BaseModel):
 @app.get("/api/productos/buscar")
 async def buscar_productos(
     q: str,
+    tipo_cliente_id: Optional[int] = None,  # ✅ Acepta None o vacío
     current_vendedor: VendedorModel = Depends(get_current_vendedor),
     db: Session = Depends(get_db)
 ):
     """Endpoint para búsqueda de productos por nombre o código"""
     try:
-        print(f"🔍 Buscando productos con: '{q}'")
+        print(f"🔍 Buscando productos con: '{q}', tipo_cliente_id: {tipo_cliente_id}")
         
         # Query sin join con categoría
         productos = db.query(ProductoModel).filter(
@@ -1613,11 +1617,39 @@ async def buscar_productos(
                 except Exception as e:
                     print(f"Error obteniendo categoría: {e}")
             
+            # ✅ NUEVO: Obtener precio según tipo de cliente
+            precio_mostrar = float(producto.precio_unitario)  # Precio por defecto
+            
+            if tipo_cliente_id:
+                try:
+                    # Buscar precio crédito (por defecto)
+                    precio_query = db.execute(
+                        text("""
+                            SELECT precio 
+                            FROM precios_cliente 
+                            WHERE producto_id = :pid 
+                              AND tipo_cliente_id = :tid
+                              AND tipo_pago = 'credito'
+                              AND activo = true
+                            LIMIT 1
+                        """),
+                        {"pid": producto.id, "tid": tipo_cliente_id}
+                    ).first()
+                    
+                    if precio_query:
+                        precio_mostrar = float(precio_query[0])
+                        print(f"   ✅ Precio para tipo {tipo_cliente_id}: S/ {precio_mostrar}")
+                    else:
+                        print(f"   ⚠️ Sin precio específico para tipo {tipo_cliente_id}, usando precio base")
+                        
+                except Exception as e:
+                    print(f"   ❌ Error obteniendo precio específico: {e}")
+            
             productos_data.append({
                 "id": producto.id,
                 "codigo_producto": producto.codigo_producto,
                 "nombre": producto.nombre,
-                "precio_unitario": float(producto.precio_unitario),
+                "precio_unitario": precio_mostrar,  # ✅ Precio correcto
                 "categoria": categoria_nombre
             })
         
@@ -2605,7 +2637,4 @@ async def ceo_dashboard(request: Request):
     return templates.TemplateResponse("ceo/ceo.html", {"request": request})
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-
-
