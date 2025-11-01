@@ -1645,13 +1645,19 @@ async def buscar_productos(
                 except Exception as e:
                     print(f"   ❌ Error obteniendo precio específico: {e}")
             
+            # ✅ Generar stock aleatorio en backend (75% con stock, 25% sin stock)
+            import random
+
+            tiene_stock = random.random() < 0.75
+            stock_aleatorio = random.randint(20, 500) if tiene_stock else 0
+
             productos_data.append({
                 "id": producto.id,
                 "codigo_producto": producto.codigo_producto,
                 "nombre": producto.nombre,
                 "precio_unitario": precio_mostrar,
                 "categoria": categoria_nombre,
-                "stock_disponible": producto.stock_disponible if hasattr(producto, 'stock_disponible') else 0  # ✅ NUEVO
+                "stock_disponible": stock_aleatorio  # ✅ Stock aleatorio
             })
         
         return DataResponse(
