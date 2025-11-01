@@ -1398,9 +1398,16 @@ function mostrarProductosPedido() {
         }
         
         // ✅ Generar stock aleatorio si no existe (temporal)
+        // ✅ Generar stock aleatorio si no existe (temporal)
         const producto = window['producto_' + item.producto_id];
-        if (!producto.stock_disponible) {
-            producto.stock_disponible = Math.floor(Math.random() * (500 - 50 + 1)) + 50; // Entre 50 y 500
+        if (producto.stock_disponible === undefined || producto.stock_disponible === null) {
+            // 75% con stock (entre 20 y 500), 25% sin stock (0)
+            const tieneStock = Math.random() < 0.75;
+            producto.stock_disponible = tieneStock 
+                ? Math.floor(Math.random() * (500 - 20 + 1)) + 20 
+                : 0;
+            
+            console.log(`📦 Stock generado para ${producto.nombre}: ${producto.stock_disponible}`);
         }
         const stock = producto.stock_disponible;
         
