@@ -1649,8 +1649,9 @@ async def buscar_productos(
                 "id": producto.id,
                 "codigo_producto": producto.codigo_producto,
                 "nombre": producto.nombre,
-                "precio_unitario": precio_mostrar,  # ✅ Precio correcto
-                "categoria": categoria_nombre
+                "precio_unitario": precio_mostrar,
+                "categoria": categoria_nombre,
+                "stock_disponible": producto.stock_disponible if hasattr(producto, 'stock_disponible') else 0  # ✅ NUEVO
             })
         
         return DataResponse(
