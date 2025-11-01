@@ -1,5 +1,5 @@
 # app/models/order_models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, Date, Time, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL, ForeignKey, Date, Time, Enum as SQLEnum, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, date, time, timezone
@@ -52,8 +52,10 @@ class PedidoModel(Base):
     metodo_pago = Column(String(50), nullable=False, default='credito')
     latitud_pedido = Column(DECIMAL(10, 8))
     longitud_pedido = Column(DECIMAL(11, 8))
+    plazo_dias = Column(Integer, default=0)
     subtotal = Column(DECIMAL(12, 2), default=0)
     descuento_total = Column(DECIMAL(12, 2), default=0)
+    descuento_contado_aplicado = Column(Numeric(10, 2), default=0)
     total = Column(DECIMAL(12, 2), default=0, index=True)
     monto_total = Column(DECIMAL(12, 2), nullable=False, default=0)
     observaciones = Column(Text)

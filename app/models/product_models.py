@@ -136,6 +136,7 @@ class PrecioClienteModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     producto_id = Column(Integer, ForeignKey("productos.id", ondelete="CASCADE"), nullable=False)
     tipo_cliente_id = Column(Integer, ForeignKey("tipos_cliente.id"), nullable=False)
+    tipo_pago = Column(String(20), nullable=False, default='credito', index=True)  # ✅ NUEVO
     precio = Column(DECIMAL(10, 2), nullable=False)
     descuento_volumen_1 = Column(DECIMAL(5, 2), default=0)
     cantidad_minima_1 = Column(Integer, default=10)
@@ -146,8 +147,11 @@ class PrecioClienteModel(Base):
     activo = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime, default=get_utc_now)
     
-    # Constraint para evitar duplicados
-    __table_args__ = (UniqueConstraint('producto_id', 'tipo_cliente_id', name='_producto_tipo_cliente_uc'),)
+    # ✅ Constraint actualizado con tipo_pago
+    __table_args__ = (
+        UniqueConstraint('producto_id', 'tipo_cliente_id', 'tipo_pago', 
+                        name='_producto_tipo_cliente_tipopago_uc'),
+    )
     
     # Relaciones
     producto = relationship("ProductoModel", back_populates="precios")
@@ -190,7 +194,9 @@ class PrecioClienteModel(Base):
         }
     
     def __repr__(self):
-        return f"<PrecioCliente {self.producto.codigo if self.producto else 'N/A'} - {self.tipo_cliente.nombre if self.tipo_cliente else 'N/A'}: ${self.precio}>"
+        return f"<PrecioCliente {self.producto.codigo if self.producto else 'N/A'} - " \
+               f"{self.tipo_cliente.nombre if self.tipo_cliente else 'N/A'} " \
+               f"({self.tipo_pago}): ${self.precio}>"
 
 # =============================================
 # MOVIMIENTOS DE STOCK
