@@ -2482,3 +2482,66 @@ body {
 .chip-cliente.hidden {
     display: none !important;
 }
+
+
+/* Stock en búsqueda */
+.stock-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #10b981;
+    color: white;
+}
+
+.stock-badge.stock-bajo {
+    background: #f59e0b;
+}
+
+.stock-badge.sin-stock {
+    background: #ef4444;
+}
+
+.producto-sin-stock {
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* Stock en carrito */
+/* Estilos de stock */
+.stock-info {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.stock-info.stock-ok {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.stock-info.stock-medio {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.stock-info.stock-bajo {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.stock-info.sin-stock {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Deshabilitar botón + cuando alcanza stock */
+.btn-cantidad:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
