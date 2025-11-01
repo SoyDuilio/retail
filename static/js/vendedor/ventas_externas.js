@@ -90,34 +90,91 @@ const estadoApp = {
     googleRecordingTimeout: null
 };
 
-// Inicializar token desde localStorage
 // ============================================================================
 // INICIALIZACIÓN AL CARGAR LA PÁGINA
 // ============================================================================
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Cargar token PRIMERO
+    console.log('🚀 Inicializando Dashboard Vendedor...');
+    
+    // 1. Cargar token
     estadoApp.token = localStorage.getItem('auth_token');
     
-    // 2. Verificar autenticación
     if (!estadoApp.token) {
         console.warn('No hay token de autenticación');
         window.location.href = '/login';
         return;
     }
     
-    // 3. Inicializar componentes
+    // 2. Inicializar componentes
     verificarAutenticacion();
-    cargarDatosVendedor();
+    
     inicializarReconocimientoVoz();
     configurarEventListeners();
     
-    // 4. Configurar input de productos
+    // 3. Configurar input de productos
     const inputProductos = document.getElementById('inputProductos');
     if (inputProductos) {
         inputProductos.addEventListener('focus', function() {
             this.select();
         });
     }
+    
+    // ============================================
+    // 4. CONFIGURAR BOTÓN CERRAR CHIP
+    // ============================================
+    const chipCliente = document.getElementById('chipCliente');
+    if (chipCliente) {
+        const btnCerrar = chipCliente.querySelector('.chip-close');
+        if (btnCerrar) {
+            btnCerrar.removeAttribute('onclick');
+            btnCerrar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                console.log('🔄 Click en cerrar chip');
+                cambiarCliente();
+            });
+            console.log('✅ Listener botón cerrar chip configurado');
+        }
+    }
+    
+    // ============================================
+    // 5. CONFIGURAR MODAL DE UBICACIÓN
+    // ============================================
+    const modalUbicacion = document.getElementById('modalUbicacion');
+    if (modalUbicacion) {
+        // Cerrar con click en overlay
+        modalUbicacion.addEventListener('click', function(e) {
+            if (e.target === modalUbicacion) {
+                console.log('🚪 Click en overlay');
+                cerrarModalUbicacion();
+            }
+        });
+        
+        // Cerrar con botón X
+        const btnCerrarModal = modalUbicacion.querySelector('.modal-close, [data-close-modal]');
+        if (btnCerrarModal) {
+            btnCerrarModal.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log('🚪 Click en botón X');
+                cerrarModalUbicacion();
+            });
+        }
+        
+        // Cerrar con ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modalUbicacion.classList.contains('modal-activo')) {
+                console.log('🚪 Tecla ESC');
+                cerrarModalUbicacion();
+            }
+        });
+        
+        console.log('✅ Modal ubicación configurado');
+    }
+    
+    // ============================================
+    // 6. CONFIGURAR INFO CRÉDITO PARA MOBILE
+    // ============================================
+    
 });
 
 function formatPrice(amount) {
@@ -207,18 +264,34 @@ async function cargarDatosVendedor() {
 async function cargarEstadisticas() {
     try {
         const response = await fetch('/api/vendedor/estadisticas/hoy', {
-            headers: { 'Authorization': `Bearer ${estadoApp.token}` }
+            headers: {
+                'Authorization': `Bearer ${estadoApp.token}`
+            }
         });
         
-        if (response.ok) {
-            const result = await response.json();
-            document.getElementById('pedidosHoy').textContent = result.data.pedidos || 0;
-            document.getElementById('ventasHoy').textContent = `S/. ${(result.data.ventas || 0).toFixed(2)}`;
+        if (!response.ok) throw new Error('Error cargando estadísticas');
+        
+        const data = await response.json();
+        
+        // ✅ Validar que los elementos existan antes de actualizar
+        const pedidosHoy = document.getElementById('pedidosHoy');
+        const ventasHoy = document.getElementById('ventasHoy');
+        
+        if (pedidosHoy) {
+            pedidosHoy.textContent = data.pedidos || 0;
         } else {
-            console.error('Error en estadísticas:', response.status);
+            console.warn('⚠️ Elemento #pedidosHoy no encontrado');
         }
+        
+        if (ventasHoy) {
+            ventasHoy.textContent = `S/ ${(data.ventas || 0).toFixed(2)}`;
+        } else {
+            console.warn('⚠️ Elemento #ventasHoy no encontrado');
+        }
+        
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
+        // No mostrar error al usuario, solo en consola
     }
 }
 
@@ -451,68 +524,85 @@ function solicitarUbicacion() {
         Toast.info('Solicitando ubicación GPS...');
     }
     
-    // Opciones para MÁXIMA precisión
     const options = {
-        enableHighAccuracy: true,  // Forzar GPS
-        timeout: 30000,            // Esperar hasta 30 segundos
-        maximumAge: 0              // No usar caché
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0
     };
     
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const precision = position.coords.accuracy;
             
+            // ✅ 1. Guardar en estadoApp PRIMERO
             estadoApp.ubicacion = {
                 latitud: position.coords.latitude,
                 longitud: position.coords.longitude,
                 precision: precision
             };
             
-            // Validar precisión
+            console.log('📍 Ubicación guardada en estadoApp:', estadoApp.ubicacion);
+            
+            // ✅ 2. Mostrar Toast
             if (precision > 100) {
                 if (typeof Toast !== 'undefined') {
-                    Toast.warning(`Ubicación obtenida pero con baja precisión (±${Math.round(precision)}m). Asegúrate de activar el GPS.`);
-                } else {
-                    alert(`Precisión baja: ±${Math.round(precision)}m. Activa el GPS para mayor precisión.`);
+                    Toast.warning(`Ubicación obtenida con baja precisión (±${Math.round(precision)}m)`);
                 }
             } else {
                 if (typeof Toast !== 'undefined') {
                     Toast.success(`Ubicación GPS confirmada (±${Math.round(precision)}m)`);
-                } else {
-                    alert('Ubicación GPS confirmada');
                 }
             }
             
-            // Actualizar UI
-            document.getElementById('estadoUbicacion').textContent = `GPS: ±${Math.round(precision)}m`;
-            document.getElementById('btnUbicacion').classList.add('ubicacion-activa');
+            // ✅ 3. Cerrar modal
+            cerrarModalUbicacion();
             
-            // Cerrar modal si existe
-            const modal = document.getElementById('modalUbicacion');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
+            // ✅ 4. Actualizar GPS Tracker con múltiples reintentos
+            let intentos = 0;
+            const maxIntentos = 5;
 
-                // Después de actualizar estadoApp.ubicacion, agregar:
-            if (gpsTracker) {
-                gpsTracker.activarDesdeHeader(position);
-            }
+            const actualizarConReintentos = () => {
+                intentos++;
+                console.log(`🔄 Intento ${intentos}/${maxIntentos} de actualizar ubicación...`);
+                
+                if (gpsTracker) {
+                    gpsTracker.activarDesdeHeader(position);
+                    gpsTracker.actualizarUbicacionBarra();
+                    
+                    // Verificar si se actualizó
+                    const btnEl = document.getElementById('btnUbicacionBarra');
+                    if (btnEl && btnEl.classList.contains('ubicacion-activa')) {
+                        console.log('✅ Ubicación actualizada correctamente');
+                        return;
+                    }
+                }
+                
+                // Reintentar si falla y no se alcanzó el máximo
+                if (intentos < maxIntentos) {
+                    setTimeout(actualizarConReintentos, 500);
+                } else {
+                    console.error('❌ No se pudo actualizar la ubicación después de', maxIntentos, 'intentos');
+                }
+            };
 
+            setTimeout(actualizarConReintentos, 200);
+            
+            console.log('✅ Proceso de ubicación completado');
         },
         (error) => {
-            console.error('Error de geolocalización:', error);
+            console.error('❌ Error de geolocalización:', error);
             
             let mensaje = 'No se pudo obtener la ubicación.';
             
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    mensaje = 'Permiso de ubicación denegado. Ve a configuración del navegador.';
+                    mensaje = 'Permiso de ubicación denegado.';
                     break;
                 case error.POSITION_UNAVAILABLE:
                     mensaje = 'Ubicación no disponible. Activa el GPS.';
                     break;
                 case error.TIMEOUT:
-                    mensaje = 'Tiempo de espera agotado. Intenta de nuevo.';
+                    mensaje = 'Tiempo de espera agotado.';
                     break;
             }
             
@@ -524,7 +614,6 @@ function solicitarUbicacion() {
         },
         options
     );
-
 }
 
 function actualizarEstadoUbicacion() {
@@ -609,6 +698,16 @@ function mostrarModalUbicacion() {
     console.log('✅ mostrarModalUbicacion() COMPLETADA');
     console.log('═══════════════════════════════════════');
 
+}
+
+function cerrarModalUbicacion() {
+    console.log('🚪 Cerrando modal de ubicación');
+    const modal = document.getElementById('modalUbicacion');
+    if (modal) {
+        modal.classList.remove('modal-activo');
+        modal.classList.add('hidden');
+        console.log('✅ Modal cerrado');
+    }
 }
 
 // Calcular distancia entre dos puntos (fórmula de Haversine)
@@ -725,8 +824,12 @@ function ocultarDropdownClientes() {
     document.getElementById('dropdownClientes').classList.add('hidden');
 }
 
-function seleccionarCliente(cliente) {
-    // Normalizar estructura del cliente
+async function seleccionarCliente(cliente) {
+    console.log('🎯 Seleccionando cliente:', cliente);
+    
+    // ============================================
+    // 1. NORMALIZAR ESTRUCTURA DEL CLIENTE
+    // ============================================
     const clienteNormalizado = {
         id: cliente.id,
         codigo_cliente: cliente.codigo_cliente || '',
@@ -746,40 +849,104 @@ function seleccionarCliente(cliente) {
         nombre_completo: cliente.nombre_comercial || cliente.razon_social || `Cliente RUC ${cliente.ruc}`
     };
 
-    // PRIMERO: Guardar el cliente seleccionado
     estadoApp.clienteSeleccionado = clienteNormalizado;
     
-    // SEGUNDO: Actualizar UI del chip
-    const chip = document.getElementById('chipCliente');
-    document.getElementById('chipClienteNombre').textContent = clienteNormalizado.nombre_completo;
-    document.getElementById('chipClienteTipo').textContent = clienteNormalizado.tipo_cliente_nombre;
-    chip.classList.remove('hidden');
+    // 2. OCULTAR BÚSQUEDA DE CLIENTE
+    const busquedaWrapper = document.getElementById('busquedaClienteWrapper');
+    if (busquedaWrapper) {
+        busquedaWrapper.classList.add('hidden');
+        console.log('✅ Búsqueda de cliente ocultada');
+    }
     
-    // TERCERO: Limpiar búsqueda de cliente
-    document.getElementById('inputBusquedaCliente').value = '';
-    ocultarDropdownClientes();
+    // ============================================
+    // 3. MOSTRAR SOLO UN CHIP (EL PRINCIPAL)
+    // ============================================
     
-    // CUARTO: Activar modo compacta
-    document.querySelector('.seccion-busqueda-combinada').classList.add('compacta');
+        
+    // Chip del header (NO mostrarlo, usar solo para info de crédito)
+    const chipHeader = document.getElementById('chipClienteHeader');
+    if (chipHeader) {
+        const nombreHeader = document.getElementById('chipClienteNombreHeader');
+        const tipoHeader = document.getElementById('chipClienteTipoHeader');
+        
+        if (nombreHeader) nombreHeader.textContent = clienteNormalizado.nombre_completo;
+        if (tipoHeader) tipoHeader.textContent = clienteNormalizado.tipo_cliente_nombre;
+        
+        chipHeader.classList.remove('hidden');
+        console.log('✅ Chip header actualizado');
+    }
     
-    // QUINTO: Mostrar y habilitar búsqueda de productos
-    document.getElementById('busquedaProductos').classList.remove('hidden');
+    // 4. MOSTRAR TOGGLE CONTADO/CRÉDITO
+    const togglePago = document.getElementById('togglePagoHeader');
+    if (togglePago) {
+        togglePago.classList.add('activo'); /* ✅ Usar clase activo */
+        console.log('✅ Toggle pago mostrado');
+    }
+    
+    // ============================================
+    // 5. ACTIVAR BÚSQUEDA DE PRODUCTOS
+    // ============================================
+    const seccionBusqueda = document.querySelector('.seccion-busqueda-combinada');
+    if (seccionBusqueda) {
+        seccionBusqueda.classList.add('compacta');
+        console.log('✅ Modo compacto activado');
+    }
+    
+    const busquedaProductos = document.getElementById('busquedaProductos');
+    if (busquedaProductos) {
+        busquedaProductos.classList.remove('hidden');
+        console.log('✅ Búsqueda de productos mostrada');
+    }
     
     const inputProductos = document.getElementById('inputProductos');
     const micBrowser = document.getElementById('micBrowser');
     const micGoogle = document.getElementById('micGoogle');
     
-    inputProductos.disabled = false;
-    micBrowser.disabled = false;
-    micGoogle.disabled = false;
+    if (inputProductos) {
+        inputProductos.disabled = false;
+        console.log('✅ Input productos habilitado');
+    }
+    if (micBrowser) micBrowser.disabled = false;
+    if (micGoogle) micGoogle.disabled = false;
     
-    // SEXTO: Enfocar input de productos
     setTimeout(() => {
-        inputProductos.focus();
-        inputProductos.select();
+        if (inputProductos) {
+            inputProductos.focus();
+            inputProductos.select();
+        }
     }, 100);
     
-    // SÉPTIMO: Verificar ubicación (DESPUÉS de todo lo demás)
+    // ============================================
+    // 6. MOSTRAR FOOTER CON COMPARACIÓN
+    // ============================================
+    const footerComparacion = document.getElementById('footerComparacion');
+    if (footerComparacion) {
+        footerComparacion.classList.remove('hidden');
+        console.log('✅ Footer comparación mostrado');
+    }
+    
+    // ============================================
+    // 7. CARGAR INFO CREDITICIA
+    // ============================================
+    if (preciosManager) {
+        preciosManager.clienteActual = clienteNormalizado;
+        await preciosManager.cargarInfoCredito(clienteNormalizado.id);
+        
+        // Actualizar comparación si hay productos
+        if (estadoApp.pedido && estadoApp.pedido.length > 0) {
+            preciosManager.productosCarrito = estadoApp.pedido.map(item => ({
+                producto_id: item.producto_id,
+                cantidad: item.cantidad
+            }));
+            await preciosManager.actualizarComparacion();
+        }
+        
+        console.log('✅ Info crediticia cargada');
+    }
+    
+    // ============================================
+    // 8. VERIFICAR UBICACIÓN
+    // ============================================
     if (!estadoApp.ubicacion) {
         setTimeout(() => {
             if (typeof Toast !== 'undefined') {
@@ -788,62 +955,128 @@ function seleccionarCliente(cliente) {
             mostrarModalUbicacion();
         }, 500);
     } else {
-        // Ya tiene ubicación
         if (typeof Toast !== 'undefined') {
             Toast.success(`Cliente ${clienteNormalizado.nombre_completo} seleccionado`);
         }
     }
+    
+    console.log('✅ Cliente seleccionado correctamente');
 }
 
 function cambiarCliente() {
+    console.log('🔄 Cambiando de cliente...');
+    
     if (estadoApp.pedido.length > 0) {
         if (!confirm('¿Deseas cambiar de cliente? Se perderá el pedido actual.')) {
             return;
         }
     }
     
+    // ============================================
+    // 1. LIMPIAR ESTADO
+    // ============================================
     estadoApp.clienteSeleccionado = null;
     estadoApp.pedido = [];
     estadoApp.productosSeleccionados.clear();
+
+    // ✅ LIMPIAR DROPDOWN DE CLIENTES
+    const dropdownClientes = document.getElementById('dropdownClientes');
+    if (dropdownClientes) {
+        dropdownClientes.classList.add('hidden');
+        dropdownClientes.innerHTML = '';
+    }
+
+    // ✅ LIMPIAR INPUT
+    const inputBusquedaCliente = document.getElementById('inputBusquedaCliente');
+    if (inputBusquedaCliente) {
+        inputBusquedaCliente.value = '';
+    }
     
-    // Ocultar búsqueda de productos
-    document.getElementById('busquedaProductos').classList.add('hidden');
-
-    // Ocultar chip
-    document.getElementById('chipCliente').classList.add('hidden');
-
-    // Desactivar modo compacta
-    document.querySelector('.seccion-busqueda-combinada').classList.remove('compacta');
-
-    // Ocultar búsqueda de productos
-    document.getElementById('busquedaProductos').classList.add('hidden');
-
+    // 2. MOSTRAR BÚSQUEDA DE CLIENTE
+    const busquedaWrapper = document.getElementById('busquedaClienteWrapper');
+    if (busquedaWrapper) {
+        busquedaWrapper.classList.remove('hidden');
+        console.log('✅ Búsqueda de cliente mostrada');
+    }
     
-    // Expandir sección de búsqueda
-    document.querySelector('.seccion-busqueda-combinada').classList.remove('compacta');
+    // ============================================
+    // 3. OCULTAR CHIPS
+    // ============================================
+        
+    const chipHeader = document.getElementById('chipClienteHeader');
+    if (chipHeader) chipHeader.classList.add('hidden');
     
-    // Deshabilitar productos y AMBOS micrófonos
+    // 4. OCULTAR TOGGLE Y FOOTER
+    const togglePago = document.getElementById('togglePagoHeader');
+    if (togglePago) {
+        togglePago.classList.remove('activo');
+        togglePago.classList.add('hidden');
+    }
+    
+    const footerComparacion = document.getElementById('footerComparacion');
+    if (footerComparacion) footerComparacion.classList.add('hidden');
+    
+    // ============================================
+    // 5. OCULTAR BÚSQUEDA DE PRODUCTOS
+    // ============================================
+    const busquedaProductos = document.getElementById('busquedaProductos');
+    if (busquedaProductos) busquedaProductos.classList.add('hidden');
+    
     const inputProductos = document.getElementById('inputProductos');
     const micBrowser = document.getElementById('micBrowser');
     const micGoogle = document.getElementById('micGoogle');
     
-    inputProductos.disabled = true;
-    micBrowser.disabled = true;
-    micGoogle.disabled = true;
-    inputProductos.value = '';
+    if (inputProductos) {
+        inputProductos.disabled = true;
+        inputProductos.value = '';
+    }
+    if (micBrowser) micBrowser.disabled = true;
+    if (micGoogle) micGoogle.disabled = true;
     
-    // Limpiar productos
-    document.getElementById('productosContainer').classList.add('hidden');
+    // ============================================
+    // 6. LIMPIAR PRODUCTOS Y PRECIOS
+    // ============================================
+    const productosContainer = document.getElementById('productosContainer');
+    if (productosContainer) productosContainer.classList.add('hidden');
+    
     ocultarDropdownProductos();
     
-    // Focus en búsqueda de cliente
-    document.getElementById('inputBusquedaCliente').focus();
+    if (preciosManager) {
+        preciosManager.limpiar();
+    }
+    
+    console.log('✅ Cliente cambiado correctamente');
+}
+
+
+function seleccionarTipoPago(tipo) {
+    console.log('💳 Tipo de pago seleccionado:', tipo);
+    
+    // ✅ Actualizar estado global
+    estadoApp.tipoPagoSeleccionado = tipo;
+    
+    // ✅ Llamar al método de la clase (nombre correcto)
+    if (preciosManager) {
+        preciosManager.seleccionarTipoPago(tipo);  // ✅ Este método SÍ existe
+    }
+    
+    console.log('✅ Tipo de pago actualizado');
 }
 
 // BÚSQUEDA DE PRODUCTOS
 async function buscarProductos(query) {
     try {
-        const url = `/api/productos/buscar?q=${encodeURIComponent(query)}`;
+        // ✅ Solo agregar parámetro SI existe cliente actual
+        const tipoClienteId = estadoApp.clienteActual?.tipo_cliente_id;
+        
+        let url = `/api/productos/buscar?q=${encodeURIComponent(query)}`;
+        
+        // ✅ Solo agregar si tiene valor
+        if (tipoClienteId) {
+            url += `&tipo_cliente_id=${tipoClienteId}`;
+        }
+        
+        console.log('🔍 Buscando con URL:', url);
         
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${estadoApp.token}` }
@@ -984,7 +1217,7 @@ function actualizarContadorSeleccionados() {
 }
 
 // 1️⃣ En agregarProductosSeleccionados() - AGREGAR AL FINAL
-function agregarProductosSeleccionados() {
+async function agregarProductosSeleccionados() {
     const nuevosProductos = [];
     
     estadoApp.productosSeleccionados.forEach(productoId => {
@@ -1011,8 +1244,14 @@ function agregarProductosSeleccionados() {
         
         Toast.success(`${nuevosProductos.length} producto${nuevosProductos.length > 1 ? 's agregados' : ' agregado'} al pedido`);
         
-        // 🎤 AGREGAR ESTO:
+        // ✅ Primero recalcular precios con API
+        if (preciosManager) {
+            await preciosManager.recalcularPreciosCarrito();
+        }
+        
+        // 🎤 Luego anunciar total CORRECTO
         announceTotal();
+        
     } else {
         Toast.warning('No hay productos seleccionados');
     }
@@ -1114,19 +1353,31 @@ function mostrarProductosPedido() {
     
     if (estadoApp.pedido.length === 0) {
         container.classList.add('hidden');
+
+        // ✅ Limpiar también la comparación
+        if (preciosManager) {
+            document.getElementById('totalCreditoComparacion').textContent = 'S/ 0.00';
+            document.getElementById('totalContadoComparacion').textContent = 'S/ 0.00';
+            document.getElementById('ahorroMonto').textContent = 'S/ 0.00';
+        }
         return;
     }
     
+    // Mostrar contenedor
     container.classList.remove('hidden');
+    
+    // Limpiar lista antes de renderizar
     lista.innerHTML = '';
     
+    // ✅ Variable para acumular total
     let total = 0;
     
+    // Renderizar cada producto
     estadoApp.pedido.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'producto-item';
         
-        // CORRECCIÓN: Agregar clase 'nuevo' para animación
+        // Agregar clase 'nuevo' para animación
         if (item.esNuevo) {
             div.classList.add('nuevo');
             delete item.esNuevo;
@@ -1170,10 +1421,28 @@ function mostrarProductosPedido() {
         `;
         
         lista.appendChild(div);
+        
+        // ✅ Acumular total
         total += item.subtotal;
     });
-    
+
+    // ✅ Actualizar total en UI
     document.getElementById('totalPedido').textContent = `S/ ${total.toFixed(2)}`;
+
+    // ✅ Actualizar manager de precios
+    if (preciosManager && estadoApp.clienteSeleccionado) {
+        // Actualizar array de productos del manager
+        preciosManager.productosCarrito = estadoApp.pedido.map(item => ({
+            producto_id: item.producto_id,
+            cantidad: item.cantidad
+        }));
+        
+        // Actualizar total
+        preciosManager.actualizarTotalPedido();
+        
+        // Actualizar comparación CRÉDITO vs CONTADO
+        preciosManager.actualizarComparacion();
+    }
 }
 
 
@@ -1234,35 +1503,66 @@ function cambiarCantidad(index, delta) {
     item.subtotal = item.cantidad * item.precio_unitario;
     mostrarProductosPedido();
     
-    // 🎤 AGREGAR ESTO:
+    // 🎤 Anunciar total
     announceTotal();
+
+    // ✅ AGREGAR: Actualizar manager de precios
+    if (preciosManager) {
+        // Buscar el producto en el array del manager
+        const productoId = item.producto_id;
+        const indexManager = preciosManager.productosCarrito.findIndex(
+            p => p.producto_id === productoId
+        );
+        
+        if (indexManager !== -1) {
+            preciosManager.productosCarrito[indexManager].cantidad = nuevaCantidad;
+        }
+        
+        // Recalcular
+        preciosManager.recalcularPreciosCarrito();
+        preciosManager.actualizarComparacion();
+        preciosManager.validarTotalContraCredito();
+    }
 }
 
 // 5️⃣ En eliminarProducto() - AGREGAR
 function eliminarProducto(index) {
-    const producto = estadoApp.pedido[index];
+    const item = estadoApp.pedido[index];
+    
+    // Remover del array
     estadoApp.pedido.splice(index, 1);
+    
+    // Actualizar UI
     mostrarProductosPedido();
     
-    if (typeof Toast !== 'undefined') {
-        Toast.info(`${producto.nombre} eliminado del pedido`);
+    // ✅ Actualizar manager de precios
+    if (preciosManager && item) {
+        const indexManager = preciosManager.productosCarrito.findIndex(
+            p => p.producto_id === item.producto_id
+        );
+        
+        if (indexManager !== -1) {
+            preciosManager.productosCarrito.splice(indexManager, 1);
+        }
+        
+        preciosManager.recalcularPreciosCarrito();
+        preciosManager.actualizarComparacion();
     }
     
-    // 🎤 AGREGAR ESTO (solo si aún hay productos)
-    if (estadoApp.pedido.length > 0) {
-        announceTotal();
-    } else {
-        // Anunciar que el carrito está vacío
-        if (window.ttsClient) {
-            window.ttsClient.speak('Carrito vacío', { speed: 1.1 });
-        }
-    }
+    Toast.info('Producto eliminado del pedido');
+    announceTotal();
 }
 
 function limpiarPedido() {
     if (confirm('¿Deseas limpiar todos los productos del pedido?')) {
         estadoApp.pedido = [];
         mostrarProductosPedido();
+    }
+
+    // ✅ AGREGAR: Limpiar manager
+    if (preciosManager) {
+        preciosManager.productosCarrito = [];
+        preciosManager.actualizarComparacion();
     }
 }
 

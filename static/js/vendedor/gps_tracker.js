@@ -25,11 +25,13 @@ class GPSTracker {
     init() {
         console.log('🛰️ Inicializando GPS Tracker...');
         this.crearWidget();
+        this.crearBarraInferior(); // ✅ AGREGAR AQUÍ
         
         // ✅ Solo iniciar si el usuario ya dio permisos en el login
         if (estadoApp?.ubicacion?.latitud) {
             console.log('✅ Ubicación ya capturada en login, iniciando tracking');
             this.iniciarTracking();
+            setTimeout(() => this.actualizarUbicacionBarra(), 200); // ✅ Con delay
         } else {
             console.log('⏸️ Esperando que el usuario autorice ubicación desde el header');
             this.actualizarEstadoWidget('waiting');
@@ -64,6 +66,9 @@ class GPSTracker {
                 
                 <!-- Versión expandida -->
                 <div class="gps-expanded">
+                    <!-- ✅ NUEVO: Info de vendedor -->
+                    
+                    
                     <div class="gps-header-exp">
                         <div class="gps-pulse-container">
                             <svg class="gps-icon" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,6 +81,14 @@ class GPSTracker {
                             <span class="gps-title">GPS Tracking</span>
                             <span class="gps-subtitle" id="gpsStatus">Esperando...</span>
                         </div>
+                    </div>
+                    
+                    <!-- ✅ Info de ubicación actual -->
+                    <div class="gps-ubicacion-actual" id="gpsUbicacionActual">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        </svg>
+                        <span id="gpsUbicacionTexto">Sin ubicación</span>
                     </div>
                     
                     <div class="gps-stats-grid">
@@ -127,12 +140,213 @@ class GPSTracker {
         
         document.body.appendChild(widget);
         
+        // ✅ AGREGAR: Barra inferior con vendedor + ubicación
+        //this.crearBarraInferior();
+        
         // Event listeners
         document.getElementById('gpsToggleBtn').addEventListener('click', () => {
             widget.classList.toggle('minimized');
         });
+        
+        // ✅ Cargar info del vendedor
+        
     }
-    
+
+    crearBarraInferior() {
+        const barra = document.createElement('div');
+        barra.id = 'barraInferiorVendedor';
+        barra.className = 'barra-inferior-vendedor';
+        barra.innerHTML = `
+            <div class="barra-content">
+                <!-- Datos del vendedor -->
+                <div class="vendedor-info-barra">
+                    <div class="vendedor-avatar-barra">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="vendedor-texto-barra">
+                        <span class="vendedor-nombre-barra" id="vendedorNombreBarra">Cargando...</span>
+                        <span class="vendedor-codigo-barra" id="vendedorCodigoBarra">ID: --</span>
+                    </div>
+                </div>
+                
+                <!-- Botón Ubicación -->
+                <button class="btn-ubicacion-barra" id="btnUbicacionBarra" onclick="mostrarModalUbicacion()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    </svg>
+                    <span id="estadoUbicacionBarra">Sin ubicación</span>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(barra);
+
+        // ✅ Forzar múltiples intentos de carga
+        let intentosCarga = 0;
+        const cargarConReintentos = () => {
+            intentosCarga++;
+            console.log(`👤 Intento ${intentosCarga}/5 de cargar datos vendedor...`);
+            
+            const nombreEl = document.getElementById('vendedorNombreBarra');
+            const codigoEl = document.getElementById('vendedorCodigoBarra');
+            
+            if (!nombreEl || !codigoEl) {
+                console.warn('⚠️ Elementos aún no existen, reintentando...');
+                if (intentosCarga < 5) {
+                    setTimeout(cargarConReintentos, 300);
+                }
+                return;
+            }
+            
+            // Elementos existen, cargar datos
+            this.cargarDatosVendedorBarra();
+            this.actualizarUbicacionBarra();
+        };
+
+        // ✅ Múltiples intentos con intervalos
+        let intentos = 0;
+        const intervalo = setInterval(() => {
+            intentos++;
+            console.log(`🔄 Intento ${intentos} de actualizar datos vendedor...`);
+            
+            this.cargarDatosVendedorBarra();
+            
+            // Verificar si se actualizó
+            const nombreEl = document.getElementById('vendedorNombreBarra');
+            if (nombreEl && nombreEl.textContent !== 'Cargando...') {
+                console.log('✅ Datos actualizados, deteniendo reintentos');
+                clearInterval(intervalo);
+            }
+            
+            if (intentos >= 10) {
+                console.error('❌ No se pudo actualizar después de 10 intentos');
+                clearInterval(intervalo);
+            }
+        }, 500);
+
+
+    }
+
+    cargarDatosVendedorBarra() {
+        console.log('👤 Cargando datos vendedor en barra...');
+        
+        const userDataStr = localStorage.getItem('user_data');
+        if (!userDataStr) {
+            console.warn('⚠️ No hay user_data en localStorage');
+            return;
+        }
+        
+        try {
+            const userData = JSON.parse(userDataStr);
+            console.log('📦 User data:', userData);
+            
+            // ✅ Actualizar TODOS los elementos con ese ID (no solo el primero)
+            const nombresEl = document.querySelectorAll('#vendedorNombreBarra');
+            const codigosEl = document.querySelectorAll('#vendedorCodigoBarra');
+
+            if (nombresEl.length === 0 || codigosEl.length === 0) {
+                console.error('❌ Elementos NO encontrados');
+                setTimeout(() => this.cargarDatosVendedorBarra(), 500);
+                return;
+            }
+
+            console.log(`✅ Encontrados ${nombresEl.length} elementos nombre y ${codigosEl.length} elementos código`);
+
+            // ✅ Actualizar TODOS
+            nombresEl.forEach((nombreEl, index) => {
+                console.log(`   Actualizando elemento ${index + 1}`);
+                nombreEl.textContent = userData.nombre || 'Vendedor';
+                nombreEl.setAttribute('style', 'color: white !important; display: block !important; opacity: 1 !important; visibility: visible !important; font-size: 0.85rem; font-weight: 600;');
+            });
+
+            codigosEl.forEach((codigoEl, index) => {
+                codigoEl.textContent = `ID: ${userData.id || '--'}`;
+                codigoEl.setAttribute('style', 'color: rgba(255, 255, 255, 0.6) !important; display: block !important; opacity: 1 !important; visibility: visible !important; font-size: 0.7rem;');
+            });
+            
+            if (!nombreEl || !codigoEl) {
+                console.error('❌ Elementos vendedorNombreBarra o vendedorCodigoBarra no encontrados');
+                return;
+            }
+            
+            // ✅ Usar los campos correctos del objeto
+            nombreEl.textContent = userData.nombre || 'Vendedor';
+            nombreEl.style.cssText = 'color: white !important; display: block !important; opacity: 1 !important; visibility: visible !important; font-size: 0.85rem; font-weight: 600;';
+
+            codigoEl.textContent = `ID: ${userData.id || '--'}`;
+            codigoEl.style.cssText = 'color: rgba(255, 255, 255, 0.6) !important; display: block !important; opacity: 1 !important; visibility: visible !important; font-size: 0.7rem;';
+
+            console.log('✅ Datos vendedor con estilos forzados:', {
+                nombre: nombreEl.textContent,
+                codigo: codigoEl.textContent,
+                nombreVisible: window.getComputedStyle(nombreEl).display !== 'none',
+                codigoVisible: window.getComputedStyle(codigoEl).display !== 'none'
+            });
+            
+        } catch (error) {
+            console.error('❌ Error parseando user_data:', error);
+        }
+    }
+
+    actualizarUbicacionBarra() {
+        console.log('📍 === INICIANDO actualizarUbicacionBarra() ===');
+        
+        // ✅ Actualizar TODOS los elementos (no solo el primero)
+        const estadosEl = document.querySelectorAll('#estadoUbicacionBarra');
+        const botonesEl = document.querySelectorAll('#btnUbicacionBarra');
+
+        if (estadosEl.length === 0 || botonesEl.length === 0) {
+            console.warn('⚠️ Elementos no encontrados, reintentando en 500ms...');
+            setTimeout(() => this.actualizarUbicacionBarra(), 500);
+            return;
+        }
+
+        console.log(`   Encontrados ${botonesEl.length} botones y ${estadosEl.length} textos`);
+        console.log('   estadoApp.ubicacion:', estadoApp?.ubicacion);
+        
+        if (estadoApp?.ubicacion?.latitud) {
+            const precision = Math.round(estadoApp.ubicacion.precision || 0);
+            
+            // ✅ Actualizar TODOS los textos
+            estadosEl.forEach((estadoEl, index) => {
+                estadoEl.textContent = 'Ubicación';
+                estadoEl.style.cssText = 'color: #86efac !important; display: inline !important; visibility: visible !important;';
+                console.log(`   Texto ${index + 1} actualizado a "Ubicación"`);
+            });
+            
+            // ✅ Actualizar TODOS los botones
+            botonesEl.forEach((btnEl, index) => {
+                btnEl.classList.remove('sin-ubicacion');
+                btnEl.classList.add('ubicacion-activa');
+                btnEl.title = `Precisión: ±${precision}m`;
+                console.log(`   Botón ${index + 1} activado (verde)`);
+            });
+            
+            console.log('✅ ÉXITO: Todos los botones en estado ACTIVO (verde)');
+            
+        } else {
+            // ✅ Estado SIN ubicación - actualizar TODOS
+            estadosEl.forEach((estadoEl, index) => {
+                estadoEl.textContent = 'Sin ubicación';
+                estadoEl.style.cssText = 'color: #fca5a5 !important; display: inline !important; visibility: visible !important;';
+                console.log(`   Texto ${index + 1} actualizado a "Sin ubicación"`);
+            });
+            
+            botonesEl.forEach((btnEl, index) => {
+                btnEl.classList.remove('ubicacion-activa');
+                btnEl.classList.add('sin-ubicacion');
+                btnEl.title = 'Click para compartir ubicación';
+                console.log(`   Botón ${index + 1} desactivado (rojo)`);
+            });
+            
+            console.log('⚠️ Todos los botones en estado INACTIVO (rojo)');
+        }
+        
+        console.log('📍 === FIN actualizarUbicacionBarra() ===');
+    }
+
     async iniciarTracking() {
         if (!navigator.geolocation) {
             console.error('❌ Geolocalización no soportada');
@@ -227,6 +441,7 @@ class GPSTracker {
                 console.log('✅ Ubicación enviada correctamente');
                 this.ultimaUbicacion = position;
                 this.actualizarWidget(position, bateria, conectividad);
+                this.actualizarUbicacionBarra(); // ✅ AGREGAR AQUÍ
             } else {
                 console.error('❌ Error al enviar ubicación:', response.status);
             }
@@ -282,6 +497,14 @@ class GPSTracker {
         const ultimaActEl = document.getElementById('gpsUltimaActualizacion');
         if (ultimaActEl) {
             ultimaActEl.textContent = `Última: ${timeStr}`;
+        }
+
+        // ✅ AGREGAR: Actualizar texto de ubicación
+        const ubicacionTextoEl = document.getElementById('gpsUbicacionTexto');
+        if (ubicacionTextoEl) {
+            const precision = Math.round(position.coords.accuracy);
+            ubicacionTextoEl.textContent = `±${precision}m`;
+            ubicacionTextoEl.className = this.getCalidadClase(precision);
         }
     }
     
